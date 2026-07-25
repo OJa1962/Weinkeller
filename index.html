@@ -711,11 +711,11 @@ function Weinkeller() {
         <div style={{ position: "fixed", inset: 0, background: "rgba(43,35,32,0.5)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 50 }}>
           <div style={{ background: "#F5F0E6", width: "100%", maxWidth: 720, maxHeight: "90vh", overflowY: "auto", borderRadius: "16px 16px 0 0", padding: 20 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-              <h2 className="display-font" style={{ fontSize: 20, margin: 0 }}>{form.id ? "Wein bearbeiten" : "Neuer Wein"}</h2>
+              <h2 className="display-font" style={{ fontSize: 20, margin: 0 }}>{form.hinzugefuegt ? "Wein bearbeiten" : "Neuer Wein"}</h2>
               <button onClick={() => setShowForm(false)} style={{ background: "none", border: "none", cursor: "pointer" }}><X size={20} /></button>
             </div>
 
-            {!form.id && (
+            {!form.hinzugefuegt && (
               <div style={{ marginBottom: 16 }}>
                 <label>Schnelleingabe (Text von Claude einfügen)</label>
                 <textarea rows={6} value={quickText} onChange={(e) => setQuickText(e.target.value)} placeholder={"Weingut: ...\nWeinname: ...\nLand: ...\n..."} />
