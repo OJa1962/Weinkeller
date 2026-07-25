@@ -32,7 +32,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js" crossorigin></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin></script>
 
-<!-- Firebase: initialisiert die Verbindung zu Firestore (Daten) und Storage (Etikettfotos) -->
+<!-- Firebase: initialisiert die Verbindung zu Firestore (Daten), Storage (Etikettfotos) und Auth (Login) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
   import {
@@ -41,6 +41,9 @@
   import {
     getStorage, ref, uploadString, getDownloadURL
   } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-storage.js";
+  import {
+    getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut
+  } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBm3HPy0QfC5amy9s8Vk8vb004AoqD5vVk",
@@ -54,11 +57,13 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const storage = getStorage(app);
+  const auth = getAuth(app);
 
   // Für das nicht-module React/Babel-Script unten zugänglich machen
   window.__fb = {
     db, storage, collection, doc, setDoc, deleteDoc, onSnapshot,
     serverTimestamp, ref, uploadString, getDownloadURL,
+    auth, onAuthStateChanged, signInWithEmailAndPassword, signOut,
   };
   window.dispatchEvent(new Event("fb-ready"));
 </script>
@@ -247,7 +252,7 @@ async function uploadLabelImage(fb, wineId, dataUrl) {
   return await fb.getDownloadURL(storageRef);
 }
 
-function Weinkeller() {
+function Weinkeller({ onLogout }) {
   const [wines, setWines] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [fb, setFb] = useState(null);
@@ -521,6 +526,10 @@ function Weinkeller() {
             <button onClick={exportExcel}
               style={{ display: "flex", alignItems: "center", gap: 6, background: dirty ? "#7A2038" : "#FFFDF9", color: dirty ? "#FFFDF9" : "#2B2320", border: "1px solid " + (dirty ? "#7A2038" : "#DDD2BE"), borderRadius: 8, padding: "8px 12px", fontSize: 13, cursor: "pointer" }}>
               <Download size={15} /> Sichern
+            </button>
+            <button onClick={onLogout} title="Abmelden"
+              style={{ display: "flex", alignItems: "center", gap: 6, background: "#FFFDF9", border: "1px solid #DDD2BE", borderRadius: 8, padding: "8px 10px", fontSize: 13, cursor: "pointer", color: "#7A6F63" }}>
+              <X size={15} />
             </button>
           </div>
         </div>
@@ -820,8 +829,80 @@ function Weinkeller() {
   );
 }
 
+function Login() {
+  const [fb, setFb] = useState(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    waitForFirebase().then(setFb);
+  }, []);
+
+  function submit(e) {
+    e.preventDefault();
+    if (!fb) return;
+    setBusy(true);
+    setError("");
+    fb.signInWithEmailAndPassword(fb.auth, email.trim(), password)
+      .catch((err) => {
+        console.error(err);
+        setError("Anmeldung fehlgeschlagen. E-Mail oder Passwort prüfen.");
+      })
+      .finally(() => setBusy(false));
+  }
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#F5F0E6", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <form onSubmit={submit} style={{ background: "#FFFDF9", border: "1px solid #E5DBC8", borderRadius: 14, padding: 28, width: "100%", maxWidth: 360 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 18 }}>
+          <WineIcon size={24} color="#7A2038" />
+          <h1 className="display-font" style={{ fontSize: 22, margin: 0 }}>Weinkeller</h1>
+        </div>
+        <div style={{ marginBottom: 12 }}>
+          <label>E-Mail</label>
+          <input type="email" autoCapitalize="none" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        </div>
+        <div style={{ marginBottom: 16 }}>
+          <label>Passwort</label>
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        </div>
+        {error && <div style={{ color: "#B0453F", fontSize: 13, marginBottom: 12 }}>{error}</div>}
+        <button type="submit" disabled={busy || !fb} style={{ width: "100%", background: "#7A2038", color: "#FFFDF9", border: "none", borderRadius: 10, padding: 12, fontSize: 14, fontWeight: 600, cursor: busy ? "default" : "pointer", opacity: busy || !fb ? 0.7 : 1 }}>
+          {busy ? "Anmelden…" : "Anmelden"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function AuthGate() {
+  const [fb, setFb] = useState(null);
+  const [user, setUser] = useState(undefined); // undefined = wird noch geprüft, null = nicht angemeldet
+
+  useEffect(() => {
+    let unsubscribe = null;
+    waitForFirebase().then((fbApi) => {
+      setFb(fbApi);
+      unsubscribe = fbApi.onAuthStateChanged(fbApi.auth, (u) => setUser(u || null));
+    });
+    return () => { if (unsubscribe) unsubscribe(); };
+  }, []);
+
+  if (user === undefined) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#F5F0E6", display: "flex", alignItems: "center", justifyContent: "center", color: "#7A6F63", fontSize: 13 }}>
+        Anmeldestatus wird geprüft…
+      </div>
+    );
+  }
+  if (!user) return <Login />;
+  return <Weinkeller onLogout={() => fb.signOut(fb.auth)} />;
+}
+
 const root = ReactDOM.createRoot(document.getElementById("root"));
-root.render(<Weinkeller />);
+root.render(<AuthGate />);
 </script>
 </body>
 </html>
