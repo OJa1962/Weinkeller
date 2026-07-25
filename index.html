@@ -157,7 +157,7 @@ const EMPTY_FORM = {
 
 const FIELD_MAP = {
   weingut: "weingut", weinname: "weinname", land: "land", region: "region",
-  jahrgang: "jahrgang", traubensorte: "traube", traube: "traube",
+  jahrgang: "jahrgang", traubensorte: "traube", traube: "traube", rebsorte: "traube",
   alkoholgehalt: "alkohol", alkohol: "alkohol", "säure": "saeure", saeure: "saeure",
   typ: "typ", cremig: "cremig", bezugsquelle: "bezugsquelle", bewertung: "bewertung",
   wiederkaufen: "wiederkaufen", notizen: "notizen", "etikett vorne": "etikettVorne",
@@ -423,7 +423,7 @@ function Weinkeller() {
   function exportExcel() {
     const rows = wines.map((w) => ({
       Weingut: w.weingut, Weinname: w.weinname, Land: w.land, Region: w.region,
-      Jahrgang: w.jahrgang, Traubensorte: w.traube, "Alkohol (%)": w.alkohol,
+      Jahrgang: w.jahrgang, Rebsorte: w.traube, "Alkohol (%)": w.alkohol,
       "Säure (1-5)": w.saeure, Typ: w.typ, Cremig: w.typ === "Weiß" ? w.cremig : "",
       Bezugsquelle: w.bezugsquelle, "Preis (€)": w.preis, "Anzahl Flaschen": w.anzahlFlaschen, "Bewertung (1-10)": w.bewertung,
       "Wieder kaufen": w.wiederkaufen, Notizen: w.notizen, Favorit: w.favorit ? "Ja" : "Nein",
@@ -474,7 +474,7 @@ function Weinkeller() {
           const parsed = {
             weingut: String(r["Weingut"] || ""), weinname: String(r["Weinname"] || ""),
             land: String(r["Land"] || ""), region: String(r["Region"] || ""),
-            jahrgang: parseInt(r["Jahrgang"], 10) || "", traube: String(r["Traubensorte"] || ""),
+            jahrgang: parseInt(r["Jahrgang"], 10) || "", traube: String(r["Rebsorte"] || ""),
             alkohol: String(r["Alkohol (%)"] || ""), saeure: parseInt(r["Säure (1-5)"], 10) || 3,
             typ: String(r["Typ"] || ""), cremig: String(r["Cremig"] || ""),
             bezugsquelle: String(r["Bezugsquelle"] || ""), preis: String(r["Preis (€)"] || ""),
@@ -731,7 +731,7 @@ function Weinkeller() {
               <div><label>Land</label><input value={form.land} onChange={(e) => setForm({ ...form, land: e.target.value })} /></div>
               <div><label>Region</label><input value={form.region} onChange={(e) => setForm({ ...form, region: e.target.value })} /></div>
               <div><label>Jahrgang</label><input value={form.jahrgang} onChange={(e) => setForm({ ...form, jahrgang: e.target.value })} /></div>
-              <div><label>Traubensorte</label><input value={form.traube} onChange={(e) => setForm({ ...form, traube: e.target.value })} /></div>
+              <div><label>Rebsorte</label><input value={form.traube} onChange={(e) => setForm({ ...form, traube: e.target.value })} /></div>
               <div><label>Alkohol (%)</label><input value={form.alkohol} onChange={(e) => setForm({ ...form, alkohol: e.target.value })} /></div>
               <div>
                 <label>Typ</label>
