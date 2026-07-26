@@ -128,6 +128,30 @@ const TYP_COLORS = {
 const SAEURE_COLORS = ["#4E9B57", "#8CA84E", "#D6A24A", "#C97A3F", "#BE3A2B"];
 const SAEURE_LABELS = ["Weich", "Mild", "Ausgewogen", "Frisch", "Spritzig"];
 
+// Dieselbe Farbsystematik wie bei der Säure (grün..rot), aber für die Bewertung fein
+// abgestuft über alle 10 Punkte interpoliert (nicht nur in 5 groben Zweier-Blöcken).
+function hexToRgb(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+function rgbToHex(r, g, b) {
+  return "#" + [r, g, b].map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
+}
+function mischeFarben(hexA, hexB, t) {
+  const [r1, g1, b1] = hexToRgb(hexA);
+  const [r2, g2, b2] = hexToRgb(hexB);
+  return rgbToHex(r1 + (r2 - r1) * t, g1 + (g2 - g1) * t, b1 + (b2 - b1) * t);
+}
+const BEWERTUNG_ANKER = ["#BE3A2B", "#C97A3F", "#D6A24A", "#8CA84E", "#4E9B57"]; // 1 (rot) -> 10 (grün)
+function bewertungFarbe(v) {
+  const n = Math.min(10, Math.max(1, v || 1));
+  const t = (n - 1) / 9; // 0..1 über die volle Skala 1-10
+  const segAnzahl = BEWERTUNG_ANKER.length - 1;
+  const segT = t * segAnzahl;
+  const i = Math.min(segAnzahl - 1, Math.floor(segT));
+  return mischeFarben(BEWERTUNG_ANKER[i], BEWERTUNG_ANKER[i + 1], segT - i);
+}
+
 function SaeureBar({ value = 3 }) {
   const v = Math.min(5, Math.max(1, value));
   const color = SAEURE_COLORS[v - 1];
@@ -258,6 +282,24 @@ async function uploadLabelImage(fb, wineId, dataUrl) {
   return await fb.getDownloadURL(storageRef);
 }
 
+const ONLINE_BEZUGSQUELLEN = {
+  "Webshop Weingut": null, // Domain je Weingut unterschiedlich -> allgemeine Google-Suche
+  "Wein am Limit": "weinamlimit.de",
+  "Wein am Limit Abo": "weinamlimit.de",
+  "Lobenberg": "lobenberg.de",
+  "Tesdorpf": "tesdorpf.de",
+};
+
+function buildShopSearchUrl(w) {
+  const query = `${w.weingut || ""} ${w.weinname || ""}`.trim();
+  if (!query) return null;
+  const domain = ONLINE_BEZUGSQUELLEN[w.bezugsquelle];
+  if (domain) {
+    return `https://www.google.com/search?q=${encodeURIComponent(`site:${domain} ${query}`)}`;
+  }
+  return `https://www.google.com/search?q=${encodeURIComponent(`${query} kaufen`)}`;
+}
+
 function WineCard({ w, onToggleFavorit, onEdit, onDelete, onImageClick }) {
   const [expanded, setExpanded] = useState(false);
   const hasMore = w.weinbeschreibung || w.speiseempfehlung || w.hintergrundgeschichte;
@@ -279,7 +321,7 @@ function WineCard({ w, onToggleFavorit, onEdit, onDelete, onImageClick }) {
                   {w.typ}
                 </span>
               )}
-              <span style={{ fontSize: 11, fontWeight: 700, color: "#7A2038", background: "#F3E9D8", borderRadius: 4, padding: "1px 7px" }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#FFFDF9", background: bewertungFarbe(w.bewertung), borderRadius: 4, padding: "1px 7px" }}>
                 {w.bewertung}/10
               </span>
             </div>
@@ -298,7 +340,19 @@ function WineCard({ w, onToggleFavorit, onEdit, onDelete, onImageClick }) {
         {w.land && <span>{w.land}{w.region ? `, ${w.region}` : ""}</span>}
         {w.traube && <span>{w.traube}</span>}
         {w.alkohol && <span>{w.alkohol}% Vol.</span>}
-        {w.bezugsquelle && <span>Bezug: {w.bezugsquelle}</span>}
+        {w.bezugsquelle && (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+            Bezug: {w.bezugsquelle}
+            {Object.prototype.hasOwnProperty.call(ONLINE_BEZUGSQUELLEN, w.bezugsquelle) && (
+              <a href={buildShopSearchUrl(w)} target="_blank" rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                title={`${w.weinname || "Wein"} online suchen`}
+                style={{ display: "inline-flex", alignItems: "center", color: "#7A2038", textDecoration: "none" }}>
+                🔎
+              </a>
+            )}
+          </span>
+        )}
         {w.preis && <span>{w.preis} €</span>}
         {w.anzahlFlaschen && <span>🍾 {w.anzahlFlaschen} {String(w.anzahlFlaschen) === "1" ? "Flasche" : "Flaschen"}</span>}
       </div>
@@ -354,6 +408,8 @@ function Weinkeller({ onLogout }) {
   const [filterBezugsquelle, setFilterBezugsquelle] = useState("Alle");
   const [filterFavorit, setFilterFavorit] = useState("Alle");
   const [filterWiederkaufen, setFilterWiederkaufen] = useState("Alle");
+  const [nurNeuesterJahrgang, setNurNeuesterJahrgang] = useState(false);
+  const [suchtext, setSuchtext] = useState("");
   const [error, setError] = useState("");
   const [dirty, setDirty] = useState(false); // seit letztem Excel-Export geändert?
   const [savedFlash, setSavedFlash] = useState(false);
@@ -504,6 +560,16 @@ function Weinkeller({ onLogout }) {
 
   const filtered = useMemo(() => {
     let list = [...wines];
+    if (suchtext.trim()) {
+      const q = suchtext.trim().toLowerCase();
+      list = list.filter((w) => {
+        const haystack = [
+          w.weinname, w.weingut, w.traube, w.land, w.region,
+          w.notizen, w.weinbeschreibung, w.speiseempfehlung, w.hintergrundgeschichte,
+        ].filter(Boolean).join(" ").toLowerCase();
+        return haystack.includes(q);
+      });
+    }
     if (filterTyp !== "Alle") list = list.filter((w) => w.typ === filterTyp);
     if (filterLand !== "Alle") list = list.filter((w) => w.land === filterLand);
     if (filterWeingut !== "Alle") list = list.filter((w) => w.weingut === filterWeingut);
@@ -514,6 +580,22 @@ function Weinkeller({ onLogout }) {
     if (filterBezugsquelle !== "Alle") list = list.filter((w) => w.bezugsquelle === filterBezugsquelle);
     if (filterFavorit !== "Alle") list = list.filter((w) => (filterFavorit === "Ja" ? w.favorit : !w.favorit));
     if (filterWiederkaufen !== "Alle") list = list.filter((w) => w.wiederkaufen === filterWiederkaufen);
+
+    // Ältere Jahrgänge desselben Weins ausblenden (nur Anzeige, nichts wird gelöscht) -
+    // hilfreich für die Frage "was kann ich aktuell nachbestellen?", ohne die Historie/Notizen zu verlieren.
+    if (nurNeuesterJahrgang) {
+      const neuesterProWein = {};
+      wines.forEach((w) => {
+        const key = `${(w.weingut || "").toLowerCase()}|${(w.weinname || "").toLowerCase()}`;
+        const j = parseInt(w.jahrgang, 10) || 0;
+        if (!(key in neuesterProWein) || j > neuesterProWein[key]) neuesterProWein[key] = j;
+      });
+      list = list.filter((w) => {
+        const key = `${(w.weingut || "").toLowerCase()}|${(w.weinname || "").toLowerCase()}`;
+        const j = parseInt(w.jahrgang, 10) || 0;
+        return j === neuesterProWein[key];
+      });
+    }
 
     list.sort((a, b) => {
       const v1 = sortValue(a, sortBy1);
@@ -530,7 +612,7 @@ function Weinkeller({ onLogout }) {
     });
     list.sort((a, b) => (b.favorit ? 1 : 0) - (a.favorit ? 1 : 0));
     return list;
-  }, [wines, filterTyp, filterLand, filterWeingut, filterTraube, filterJahrgang, filterAnzahlFlaschen, filterBezugsquelle, filterFavorit, filterWiederkaufen, sortBy1, sortBy2]);
+  }, [wines, suchtext, filterTyp, filterLand, filterWeingut, filterTraube, filterJahrgang, filterAnzahlFlaschen, filterBezugsquelle, filterFavorit, filterWiederkaufen, nurNeuesterJahrgang, sortBy1, sortBy2]);
 
   function copyForClaude() {
     const lines = filtered.map((w) => {
@@ -575,16 +657,27 @@ function Weinkeller({ onLogout }) {
     XLSX.utils.book_append_sheet(wb, ws, "Weinkeller");
     const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
     const blob = new Blob([wbout], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-    const file = new File([blob], "weinkeller.xlsx", { type: blob.type });
 
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      navigator.share({ files: [file], title: "Weinkeller" }).then(() => setDirty(false)).catch(() => {});
+    // Dateiname mit Zeitstempel, damit beim wiederholten Sichern eindeutig erkennbar ist,
+    // welche Datei die aktuellste ist (statt "weinkeller (1).xlsx", "weinkeller (2).xlsx" ...)
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, "0");
+    const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
+    const filename = `weinkeller-${stamp}.xlsx`;
+    const file = new File([blob], filename, { type: blob.type });
+
+    // "In Dateien sichern" (Teilen-Menü) nur auf iPhone/iPad anbieten - am Mac/Desktop
+    // soll ein ganz normaler Browser-Download in den Downloads-Ordner laufen.
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+    if (isIOS && navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file] }).then(() => setDirty(false)).catch(() => {});
       return;
     }
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "weinkeller.xlsx";
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -687,6 +780,15 @@ function Weinkeller({ onLogout }) {
             Deine Daten werden automatisch in der Cloud gespeichert und mit allen Geräten synchronisiert. „Sichern" legt zusätzlich eine Excel-Sicherungskopie an.
           </div>
         )}
+
+        <div style={{ marginBottom: 12 }}>
+          <input
+            type="text"
+            value={suchtext}
+            onChange={(e) => setSuchtext(e.target.value)}
+            placeholder="Suche: Weinname, Weingut, Rebsorte, Land, Notizen…"
+          />
+        </div>
 
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
           <div style={{ flex: "1 1 140px" }}>
@@ -796,6 +898,11 @@ function Weinkeller({ onLogout }) {
           </div>
         </div>
 
+        <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, cursor: "pointer", textTransform: "none", letterSpacing: 0, fontSize: 13, fontWeight: 500, color: "#2B2320" }}>
+          <input type="checkbox" checked={nurNeuesterJahrgang} onChange={(e) => setNurNeuesterJahrgang(e.target.checked)} style={{ width: "auto" }} />
+          Nur neuesten Jahrgang je Wein anzeigen
+        </label>
+
         <button onClick={openNewForm}
           style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", background: "#7A2038", color: "#FFFDF9", border: "none", borderRadius: 10, padding: "12px", fontSize: 14, fontWeight: 600, cursor: "pointer", marginBottom: 10 }}>
           <Plus size={16} /> Wein hinzufügen
@@ -828,7 +935,7 @@ function Weinkeller({ onLogout }) {
 
       {lightbox && (
         <div onClick={() => setLightbox(null)} style={{ position: "fixed", inset: 0, background: "rgba(20,16,14,0.9)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 60, padding: 20 }}>
-          <button onClick={() => setLightbox(null)} style={{ position: "absolute", top: 20, right: 20, background: "rgba(255,255,255,0.15)", border: "none", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#FFFDF9" }}>
+          <button onClick={() => setLightbox(null)} style={{ position: "absolute", top: "calc(20px + env(safe-area-inset-top, 0px))", right: "calc(20px + env(safe-area-inset-right, 0px))", background: "rgba(255,255,255,0.15)", border: "none", borderRadius: "50%", width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#FFFDF9" }}>
             <X size={20} />
           </button>
           <img src={lightbox} alt="Etikett vergrößert" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "100%", maxHeight: "90vh", borderRadius: 8, boxShadow: "0 8px 30px rgba(0,0,0,0.4)" }} />
@@ -852,6 +959,21 @@ function Weinkeller({ onLogout }) {
                 </button>
               </div>
             )}
+
+            {!form.hinzugefuegt && form.weingut && form.weinname && (() => {
+              const aeltere = wines.filter((w) =>
+                (w.weingut || "").toLowerCase().trim() === form.weingut.toLowerCase().trim() &&
+                (w.weinname || "").toLowerCase().trim() === form.weinname.toLowerCase().trim() &&
+                String(w.jahrgang || "") !== String(form.jahrgang || "")
+              );
+              if (aeltere.length === 0) return null;
+              const jahrgaengeText = aeltere.map((w) => w.jahrgang || "?").join(", ");
+              return (
+                <div style={{ background: "#FBF3E4", border: "1px solid #E3D3B0", borderRadius: 8, padding: "10px 12px", fontSize: 13, marginBottom: 16, color: "#6B5940" }}>
+                  Hinweis: „{form.weinname}" ist bereits mit Jahrgang {jahrgaengeText} in der Liste. Der ältere Eintrag bleibt automatisch erhalten – bei Bedarf kannst du ihn selbst über den Papierkorb-Button löschen, oder mit dem Schalter „Nur neuesten Jahrgang je Wein anzeigen" einfach ausblenden.
+                </div>
+              );
+            })()}
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <div><label>Weingut</label><input value={form.weingut} onChange={(e) => setForm({ ...form, weingut: e.target.value })} /></div>
