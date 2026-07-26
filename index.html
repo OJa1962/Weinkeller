@@ -157,7 +157,7 @@ const EMPTY_FORM = {
   id: null, weingut: "", weinname: "", land: "", region: "", jahrgang: "",
   traube: "", alkohol: "", saeure: 3, typ: "Rot", cremig: "", bezugsquelle: "",
   bewertung: 7, wiederkaufen: "Vielleicht", notizen: "", etikettVorne: "",
-  favorit: false, preis: "", anzahlFlaschen: "",
+  favorit: false, preis: "", anzahlFlaschen: "", weinbeschreibung: "", speiseempfehlung: "",
 };
 
 const FIELD_MAP = {
@@ -168,6 +168,8 @@ const FIELD_MAP = {
   wiederkaufen: "wiederkaufen", notizen: "notizen", "etikett vorne": "etikettVorne",
   etikettvorne: "etikettVorne", favorit: "favorit", preis: "preis",
   "anzahl flaschen": "anzahlFlaschen", anzahlflaschen: "anzahlFlaschen", flaschen: "anzahlFlaschen",
+  weinbeschreibung: "weinbeschreibung", beschreibung: "weinbeschreibung",
+  speiseempfehlung: "speiseempfehlung", speisenempfehlung: "speiseempfehlung", speiseempfehlungen: "speiseempfehlung",
 };
 
 function parseQuickText(text) {
@@ -200,7 +202,7 @@ function parseQuickText(text) {
   return out;
 }
 
-function LabelThumb({ src }) {
+function LabelThumb({ src, onClick }) {
   const [failed, setFailed] = useState(false);
   if (!src || failed) {
     return (
@@ -210,8 +212,9 @@ function LabelThumb({ src }) {
     );
   }
   return (
-    <img src={src} alt="Etikett"
-      style={{ width: 40, height: 52, objectFit: "cover", borderRadius: 4, border: "1px solid #E5DBC8", flexShrink: 0 }}
+    <img src={src} alt="Etikett – zum Vergrößern antippen"
+      onClick={onClick}
+      style={{ width: 40, height: 52, objectFit: "cover", borderRadius: 4, border: "1px solid #E5DBC8", flexShrink: 0, cursor: onClick ? "pointer" : "default" }}
       onError={() => setFailed(true)} />
   );
 }
@@ -275,6 +278,8 @@ function Weinkeller({ onLogout }) {
   const [dirty, setDirty] = useState(false); // seit letztem Excel-Export geändert?
   const [savedFlash, setSavedFlash] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [lightbox, setLightbox] = useState(null);
+  const [copyFlash, setCopyFlash] = useState(false);
 
   // Verbindung zu Firestore aufbauen und live auf Änderungen hören (auch von anderen Geräten)
   useEffect(() => {
@@ -327,6 +332,27 @@ function Weinkeller({ onLogout }) {
     setShowForm(true);
   }
 
+  function resizeImageDataUrl(dataUrl, maxDim = 1400, quality = 0.82) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          const scale = maxDim / Math.max(width, height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = reject;
+      img.src = dataUrl;
+    });
+  }
+
   function handleFileUpload(field, file) {
     if (!file || !fb || !form.id) return;
     setUploading(true);
@@ -334,7 +360,8 @@ function Weinkeller({ onLogout }) {
     const reader = new FileReader();
     reader.onload = async () => {
       try {
-        const url = await uploadLabelImage(fb, form.id, reader.result);
+        const resized = await resizeImageDataUrl(reader.result);
+        const url = await uploadLabelImage(fb, form.id, resized);
         setForm((f) => ({ ...f, [field]: url }));
       } catch (e) {
         console.error(e);
@@ -380,7 +407,6 @@ function Weinkeller({ onLogout }) {
   const weingueter = useMemo(() => Array.from(new Set(wines.map((w) => w.weingut).filter(Boolean))).sort(), [wines]);
   const trauben = useMemo(() => Array.from(new Set(wines.map((w) => w.traube).filter(Boolean))).sort(), [wines]);
   const jahrgaenge = useMemo(() => Array.from(new Set(wines.map((w) => w.jahrgang).filter(Boolean))).sort((a, b) => b - a), [wines]);
-  const anzahlFlaschenOptionen = useMemo(() => Array.from(new Set(wines.map((w) => w.anzahlFlaschen).filter((v) => v !== "" && v != null))).sort((a, b) => a - b), [wines]);
 
   function sortValue(w, key) {
     switch (key) {
@@ -403,7 +429,8 @@ function Weinkeller({ onLogout }) {
     if (filterWeingut !== "Alle") list = list.filter((w) => w.weingut === filterWeingut);
     if (filterTraube !== "Alle") list = list.filter((w) => w.traube === filterTraube);
     if (filterJahrgang !== "Alle") list = list.filter((w) => String(w.jahrgang) === String(filterJahrgang));
-    if (filterAnzahlFlaschen !== "Alle") list = list.filter((w) => String(w.anzahlFlaschen) === String(filterAnzahlFlaschen));
+    if (filterAnzahlFlaschen === "vorhanden") list = list.filter((w) => parseFloat(w.anzahlFlaschen) > 0);
+    if (filterAnzahlFlaschen === "keine") list = list.filter((w) => !(parseFloat(w.anzahlFlaschen) > 0));
     if (filterBezugsquelle !== "Alle") list = list.filter((w) => w.bezugsquelle === filterBezugsquelle);
     if (filterFavorit !== "Alle") list = list.filter((w) => (filterFavorit === "Ja" ? w.favorit : !w.favorit));
     if (filterWiederkaufen !== "Alle") list = list.filter((w) => w.wiederkaufen === filterWiederkaufen);
@@ -425,12 +452,38 @@ function Weinkeller({ onLogout }) {
     return list;
   }, [wines, filterTyp, filterLand, filterWeingut, filterTraube, filterJahrgang, filterAnzahlFlaschen, filterBezugsquelle, filterFavorit, filterWiederkaufen, sortBy1, sortBy2]);
 
+  function copyForClaude() {
+    const lines = filtered.map((w) => {
+      const parts = [
+        `${w.weinname || "—"} (${w.weingut || "?"}${w.jahrgang ? ", " + w.jahrgang : ""})`,
+        w.typ && `Typ: ${w.typ}`,
+        w.traube && `Rebsorte: ${w.traube}`,
+        w.land && `Land: ${w.land}${w.region ? ", " + w.region : ""}`,
+        w.saeure && `Säure: ${w.saeure}/5`,
+        w.anzahlFlaschen !== "" && w.anzahlFlaschen != null && `Flaschen vorhanden: ${w.anzahlFlaschen}`,
+        w.bewertung && `Bewertung: ${w.bewertung}/10`,
+        w.speiseempfehlung && `Passt zu: ${w.speiseempfehlung}`,
+        w.weinbeschreibung && `Beschreibung: ${w.weinbeschreibung}`,
+        w.notizen && `Notizen: ${w.notizen}`,
+      ].filter(Boolean);
+      return "- " + parts.join(" | ");
+    });
+    const text = `Meine Weinliste (${filtered.length} Einträge, aktueller Filter):\n\n${lines.join("\n")}`;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(
+        () => { setCopyFlash(true); setTimeout(() => setCopyFlash(false), 1500); },
+        () => setError("Kopieren fehlgeschlagen. Bitte manuell markieren.")
+      );
+    }
+  }
+
   function exportExcel() {
     const rows = wines.map((w) => ({
       Weingut: w.weingut, Weinname: w.weinname, Land: w.land, Region: w.region,
       Jahrgang: w.jahrgang, Rebsorte: w.traube, "Alkohol (%)": w.alkohol,
       "Säure (1-5)": w.saeure, Typ: w.typ, Cremig: w.typ === "Weiß" ? w.cremig : "",
       Bezugsquelle: w.bezugsquelle, "Preis (€)": w.preis, "Anzahl Flaschen": w.anzahlFlaschen, "Bewertung (1-10)": w.bewertung,
+      Weinbeschreibung: w.weinbeschreibung, Speiseempfehlung: w.speiseempfehlung,
       "Wieder kaufen": w.wiederkaufen, Notizen: w.notizen, Favorit: w.favorit ? "Ja" : "Nein",
       Etikett: w.etikettVorne || "",
     }));
@@ -483,6 +536,7 @@ function Weinkeller({ onLogout }) {
             alkohol: String(r["Alkohol (%)"] || ""), saeure: parseInt(r["Säure (1-5)"], 10) || 3,
             typ: String(r["Typ"] || ""), cremig: String(r["Cremig"] || ""),
             bezugsquelle: String(r["Bezugsquelle"] || ""), preis: String(r["Preis (€)"] || ""),
+            weinbeschreibung: String(r["Weinbeschreibung"] || ""), speiseempfehlung: String(r["Speiseempfehlung"] || ""),
             anzahlFlaschen: String(r["Anzahl Flaschen"] || ""),
             bewertung: parseInt(r["Bewertung (1-10)"], 10) || 5,
             wiederkaufen: String(r["Wieder kaufen"] || ""), notizen: String(r["Notizen"] || ""),
@@ -619,8 +673,9 @@ function Weinkeller({ onLogout }) {
           <div style={{ flex: "1 1 110px" }}>
             <label>Anzahl Flaschen</label>
             <select value={filterAnzahlFlaschen} onChange={(e) => setFilterAnzahlFlaschen(e.target.value)}>
-              <option>Alle</option>
-              {anzahlFlaschenOptionen.map((n) => <option key={n}>{n}</option>)}
+              <option value="Alle">Alle</option>
+              <option value="vorhanden">Vorhanden (&gt; 0)</option>
+              <option value="keine">Keine mehr (0)</option>
             </select>
           </div>
           <div style={{ flex: "1 1 110px" }}>
@@ -658,8 +713,13 @@ function Weinkeller({ onLogout }) {
         </div>
 
         <button onClick={openNewForm}
-          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", background: "#7A2038", color: "#FFFDF9", border: "none", borderRadius: 10, padding: "12px", fontSize: 14, fontWeight: 600, cursor: "pointer", marginBottom: 20 }}>
+          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", background: "#7A2038", color: "#FFFDF9", border: "none", borderRadius: 10, padding: "12px", fontSize: 14, fontWeight: 600, cursor: "pointer", marginBottom: 10 }}>
           <Plus size={16} /> Wein hinzufügen
+        </button>
+
+        <button onClick={copyForClaude} disabled={filtered.length === 0}
+          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", background: copyFlash ? "#EFE6D3" : "#FFFDF9", color: "#2B2320", border: "1px solid #DDD2BE", borderRadius: 10, padding: "10px", fontSize: 13, fontWeight: 500, cursor: filtered.length === 0 ? "default" : "pointer", opacity: filtered.length === 0 ? 0.5 : 1, marginBottom: 20 }}>
+          {copyFlash ? "✓ kopiert – jetzt bei Claude einfügen" : `Für Claude kopieren (${filtered.length} gefiltert)`}
         </button>
 
         {loaded && filtered.length === 0 && (
@@ -673,15 +733,20 @@ function Weinkeller({ onLogout }) {
             <div key={w.id} style={{ background: "#FFFDF9", border: "1px solid #E5DBC8", borderRadius: 12, padding: 14, position: "relative", borderLeft: `5px solid ${TYP_COLORS[w.typ] || "#7A2038"}` }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <div style={{ display: "flex", gap: 10 }}>
-                  {w.etikettVorne && <LabelThumb src={w.etikettVorne} />}
+                  {w.etikettVorne && <LabelThumb src={w.etikettVorne} onClick={() => setLightbox(w.etikettVorne)} />}
                   <div>
                     <div className="display-font" style={{ fontSize: 17, fontWeight: 600 }}>{w.weinname || "—"}</div>
                     <div style={{ fontSize: 13, color: "#7A6F63" }}>{w.weingut}{w.jahrgang ? ` · ${w.jahrgang}` : ""}</div>
-                    {w.typ && (
-                      <span style={{ display: "inline-block", marginTop: 4, fontSize: 11, fontWeight: 600, color: "#FFFDF9", background: TYP_COLORS[w.typ] || "#7A2038", borderRadius: 4, padding: "1px 7px" }}>
-                        {w.typ}
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+                      {w.typ && (
+                        <span style={{ fontSize: 11, fontWeight: 600, color: "#FFFDF9", background: TYP_COLORS[w.typ] || "#7A2038", borderRadius: 4, padding: "1px 7px" }}>
+                          {w.typ}
+                        </span>
+                      )}
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "#7A2038", background: "#F3E9D8", borderRadius: 4, padding: "1px 7px" }}>
+                        {w.bewertung}/10
                       </span>
-                    )}
+                    </div>
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
@@ -705,16 +770,24 @@ function Weinkeller({ onLogout }) {
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 10, fontSize: 12 }}>
                 {w.typ === "Weiß" && w.cremig && <span style={{ color: "#7A6F63" }}>Cremig: {w.cremig}</span>}
-                <div style={{ marginLeft: "auto", background: "#7A2038", color: "#FFFDF9", borderRadius: 6, padding: "2px 8px", fontWeight: 600 }}>
-                  {w.bewertung}/10
-                </div>
               </div>
               {w.wiederkaufen && <div style={{ marginTop: 6, fontSize: 12, color: "#7A6F63" }}>Wieder kaufen: {w.wiederkaufen}</div>}
+              {w.speiseempfehlung && <div style={{ marginTop: 6, fontSize: 12, color: "#7A6F63" }}>🍽️ Passt zu: {w.speiseempfehlung}</div>}
+              {w.weinbeschreibung && <div style={{ marginTop: 6, fontSize: 12, color: "#7A6F63" }}>{w.weinbeschreibung}</div>}
               {w.notizen && <div style={{ marginTop: 6, fontSize: 12, fontStyle: "italic", color: "#7A6F63" }}>{w.notizen}</div>}
             </div>
           ))}
         </div>
       </div>
+
+      {lightbox && (
+        <div onClick={() => setLightbox(null)} style={{ position: "fixed", inset: 0, background: "rgba(20,16,14,0.9)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 60, padding: 20 }}>
+          <button onClick={() => setLightbox(null)} style={{ position: "absolute", top: 20, right: 20, background: "rgba(255,255,255,0.15)", border: "none", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#FFFDF9" }}>
+            <X size={20} />
+          </button>
+          <img src={lightbox} alt="Etikett vergrößert" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "100%", maxHeight: "90vh", borderRadius: 8, boxShadow: "0 8px 30px rgba(0,0,0,0.4)" }} />
+        </div>
+      )}
 
       {showForm && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(43,35,32,0.5)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 50 }}>
@@ -792,7 +865,15 @@ function Weinkeller({ onLogout }) {
                 </select>
               </div>
               <div style={{ gridColumn: "1 / -1" }}>
-                <label>Notizen</label>
+                <label>Weinbeschreibung (aus dem Netz)</label>
+                <textarea rows={2} value={form.weinbeschreibung} onChange={(e) => setForm({ ...form, weinbeschreibung: e.target.value })} placeholder="Von Wein am Limit, Tesdorpf oder Lobenberg übernommen" />
+              </div>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label>Speiseempfehlung</label>
+                <input value={form.speiseempfehlung} onChange={(e) => setForm({ ...form, speiseempfehlung: e.target.value })} placeholder="z. B. Rotwild, Hartkäse, dunkle Schokolade" />
+              </div>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label>Notizen (eure eigenen Eindrücke)</label>
                 <textarea rows={2} value={form.notizen} onChange={(e) => setForm({ ...form, notizen: e.target.value })} />
               </div>
               <div>
@@ -805,7 +886,7 @@ function Weinkeller({ onLogout }) {
                   </label>
                 </div>
                 <div style={{ fontSize: 11, color: "#A89C89", marginTop: 4 }}>
-                  {uploading ? "Foto wird hochgeladen…" : "Foto über 📤 hochladen – es wird in der Cloud gespeichert und ist dann auf allen Geräten sichtbar."}
+                  {uploading ? "Foto wird verkleinert und hochgeladen…" : "Foto über 📤 hochladen – wird automatisch verkleinert, in der Cloud gespeichert und ist auf allen Geräten sichtbar (zum Vergrößern antippen)."}
                 </div>
               </div>
               <div>
