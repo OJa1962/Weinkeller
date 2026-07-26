@@ -156,7 +156,7 @@ function SaeureBar({ value = 3 }) {
 const EMPTY_FORM = {
   id: null, weingut: "", weinname: "", land: "", region: "", jahrgang: "",
   traube: "", alkohol: "", saeure: 3, typ: "Rot", cremig: "", bezugsquelle: "",
-  bewertung: 7, wiederkaufen: "Vielleicht", notizen: "", etikettVorne: "",
+  bewertung: 7, wiederkaufen: "Nein", notizen: "", etikettVorne: "",
   favorit: false, preis: "", anzahlFlaschen: "", weinbeschreibung: "", speiseempfehlung: "", hintergrundgeschichte: "",
 };
 
@@ -192,7 +192,9 @@ function parseQuickText(text) {
       if (v.includes("rot")) out[key] = "Rot";
       else if (v.includes("weiß") || v.includes("weiss")) out[key] = "Weiß";
       else if (v.includes("ros")) out[key] = "Rosé";
-      else if (v.includes("schaum") || v.includes("sekt") || v.includes("champ")) out[key] = "Schaumwein";
+      else if (v.includes("champ")) out[key] = "Champagner";
+      else if (v.includes("pet nat") || v.includes("pétillant") || v.includes("petnat")) out[key] = "PET NAT";
+      else if (v.includes("schaum") || v.includes("sekt") || v.includes("crémant") || v.includes("cremant") || v.includes("prosecco") || v.includes("cava")) out[key] = "Schaumwein";
       else out[key] = rawVal;
     } else if (key === "favorit") {
       out[key] = /ja/i.test(rawVal);
@@ -532,6 +534,9 @@ function Weinkeller({ onLogout }) {
 
   function copyForClaude() {
     const lines = filtered.map((w) => {
+      const kurzbeschreibung = w.weinbeschreibung
+        ? w.weinbeschreibung.split(/(?<=[.!?])\s+/).slice(0, 1).join(" ")
+        : "";
       const parts = [
         `${w.weinname || "—"} (${w.weingut || "?"}${w.jahrgang ? ", " + w.jahrgang : ""})`,
         w.typ && `Typ: ${w.typ}`,
@@ -541,8 +546,7 @@ function Weinkeller({ onLogout }) {
         w.anzahlFlaschen !== "" && w.anzahlFlaschen != null && `Flaschen vorhanden: ${w.anzahlFlaschen}`,
         w.bewertung && `Bewertung: ${w.bewertung}/10`,
         w.speiseempfehlung && `Passt zu: ${w.speiseempfehlung}`,
-        w.weinbeschreibung && `Beschreibung: ${w.weinbeschreibung}`,
-        w.hintergrundgeschichte && `Hintergrund: ${w.hintergrundgeschichte}`,
+        kurzbeschreibung && `Beschreibung: ${kurzbeschreibung}`,
         w.notizen && `Notizen: ${w.notizen}`,
       ].filter(Boolean);
       return "- " + parts.join(" | ");
