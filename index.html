@@ -157,7 +157,7 @@ const EMPTY_FORM = {
   id: null, weingut: "", weinname: "", land: "", region: "", jahrgang: "",
   traube: "", alkohol: "", saeure: 3, typ: "Rot", cremig: "", bezugsquelle: "",
   bewertung: 7, wiederkaufen: "Vielleicht", notizen: "", etikettVorne: "",
-  favorit: false, preis: "", anzahlFlaschen: "", weinbeschreibung: "", speiseempfehlung: "",
+  favorit: false, preis: "", anzahlFlaschen: "", weinbeschreibung: "", speiseempfehlung: "", hintergrundgeschichte: "",
 };
 
 const FIELD_MAP = {
@@ -170,6 +170,7 @@ const FIELD_MAP = {
   "anzahl flaschen": "anzahlFlaschen", anzahlflaschen: "anzahlFlaschen", flaschen: "anzahlFlaschen",
   weinbeschreibung: "weinbeschreibung", beschreibung: "weinbeschreibung",
   speiseempfehlung: "speiseempfehlung", speisenempfehlung: "speiseempfehlung", speiseempfehlungen: "speiseempfehlung",
+  hintergrundgeschichte: "hintergrundgeschichte", hintergrund: "hintergrundgeschichte", geschichte: "hintergrundgeschichte",
 };
 
 function parseQuickText(text) {
@@ -253,6 +254,83 @@ async function uploadLabelImage(fb, wineId, dataUrl) {
   const storageRef = fb.ref(fb.storage, `labels/${wineId}.jpg`);
   await fb.uploadString(storageRef, dataUrl, "data_url");
   return await fb.getDownloadURL(storageRef);
+}
+
+function WineCard({ w, onToggleFavorit, onEdit, onDelete, onImageClick }) {
+  const [expanded, setExpanded] = useState(false);
+  const hasMore = w.weinbeschreibung || w.speiseempfehlung || w.hintergrundgeschichte;
+  const teaser = w.weinbeschreibung
+    ? w.weinbeschreibung.split(/(?<=[.!?])\s+/).slice(0, 1).join(" ")
+    : "";
+
+  return (
+    <div style={{ background: "#FFFDF9", border: "1px solid #E5DBC8", borderRadius: 12, padding: 14, position: "relative", borderLeft: `5px solid ${TYP_COLORS[w.typ] || "#7A2038"}` }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div style={{ display: "flex", gap: 10 }}>
+          {w.etikettVorne && <LabelThumb src={w.etikettVorne} onClick={() => onImageClick(w.etikettVorne)} />}
+          <div>
+            <div className="display-font" style={{ fontSize: 17, fontWeight: 600 }}>{w.weinname || "—"}</div>
+            <div style={{ fontSize: 13, color: "#7A6F63" }}>{w.weingut}{w.jahrgang ? ` · ${w.jahrgang}` : ""}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+              {w.typ && (
+                <span style={{ fontSize: 11, fontWeight: 600, color: "#FFFDF9", background: TYP_COLORS[w.typ] || "#7A2038", borderRadius: 4, padding: "1px 7px" }}>
+                  {w.typ}
+                </span>
+              )}
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#7A2038", background: "#F3E9D8", borderRadius: 4, padding: "1px 7px" }}>
+                {w.bewertung}/10
+              </span>
+            </div>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 6 }}>
+          <button onClick={() => onToggleFavorit(w.id)} style={{ background: "none", border: "none", cursor: "pointer", color: w.favorit ? "#C9A961" : "#D8CDB8" }}>
+            <Star size={24} fill={w.favorit ? "#C9A961" : "none"} />
+          </button>
+          <button onClick={() => onEdit(w)} style={{ background: "none", border: "none", cursor: "pointer", color: "#7A6F63" }}><Pencil size={15} /></button>
+          <button onClick={() => onDelete(w.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#B0453F" }}><Trash2 size={15} /></button>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 14px", fontSize: 13, color: "#4A4038", marginTop: 8 }}>
+        {w.land && <span>{w.land}{w.region ? `, ${w.region}` : ""}</span>}
+        {w.traube && <span>{w.traube}</span>}
+        {w.alkohol && <span>{w.alkohol}% Vol.</span>}
+        {w.bezugsquelle && <span>Bezug: {w.bezugsquelle}</span>}
+        {w.preis && <span>{w.preis} €</span>}
+        {w.anzahlFlaschen && <span>🍾 {w.anzahlFlaschen} {String(w.anzahlFlaschen) === "1" ? "Flasche" : "Flaschen"}</span>}
+      </div>
+
+      <div style={{ marginTop: 10 }}>
+        <SaeureBar value={w.saeure || 3} />
+      </div>
+
+      {w.typ === "Weiß" && w.cremig && <div style={{ marginTop: 10, fontSize: 12, color: "#7A6F63" }}>Cremig: {w.cremig}</div>}
+      {w.wiederkaufen && <div style={{ marginTop: 6, fontSize: 12, color: "#7A6F63" }}>Wieder kaufen: {w.wiederkaufen}</div>}
+
+      {/* Notizen: immer sichtbar, kurz, für private Vermerke */}
+      {w.notizen && <div style={{ marginTop: 8, fontSize: 12, fontStyle: "italic", color: "#7A6F63" }}>{w.notizen}</div>}
+
+      {!expanded && teaser && (
+        <div style={{ marginTop: 8, fontSize: 12, color: "#A89C89" }}>{teaser}</div>
+      )}
+
+      {expanded && (
+        <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+          {w.speiseempfehlung && <div style={{ fontSize: 12, color: "#7A6F63" }}>🍽️ Passt zu: {w.speiseempfehlung}</div>}
+          {w.weinbeschreibung && <div style={{ fontSize: 12, color: "#7A6F63" }}>{w.weinbeschreibung}</div>}
+          {w.hintergrundgeschichte && <div style={{ fontSize: 12, color: "#7A6F63" }}>{w.hintergrundgeschichte}</div>}
+        </div>
+      )}
+
+      {hasMore && (
+        <button onClick={() => setExpanded((e) => !e)}
+          style={{ marginTop: 8, background: "none", border: "none", padding: 0, color: "#7A2038", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+          {expanded ? "Weniger anzeigen ▲" : "Mehr anzeigen ▼"}
+        </button>
+      )}
+    </div>
+  );
 }
 
 function Weinkeller({ onLogout }) {
@@ -464,6 +542,7 @@ function Weinkeller({ onLogout }) {
         w.bewertung && `Bewertung: ${w.bewertung}/10`,
         w.speiseempfehlung && `Passt zu: ${w.speiseempfehlung}`,
         w.weinbeschreibung && `Beschreibung: ${w.weinbeschreibung}`,
+        w.hintergrundgeschichte && `Hintergrund: ${w.hintergrundgeschichte}`,
         w.notizen && `Notizen: ${w.notizen}`,
       ].filter(Boolean);
       return "- " + parts.join(" | ");
@@ -483,7 +562,7 @@ function Weinkeller({ onLogout }) {
       Jahrgang: w.jahrgang, Rebsorte: w.traube, "Alkohol (%)": w.alkohol,
       "Säure (1-5)": w.saeure, Typ: w.typ, Cremig: w.typ === "Weiß" ? w.cremig : "",
       Bezugsquelle: w.bezugsquelle, "Preis (€)": w.preis, "Anzahl Flaschen": w.anzahlFlaschen, "Bewertung (1-10)": w.bewertung,
-      Weinbeschreibung: w.weinbeschreibung, Speiseempfehlung: w.speiseempfehlung,
+      Weinbeschreibung: w.weinbeschreibung, Speiseempfehlung: w.speiseempfehlung, Hintergrundgeschichte: w.hintergrundgeschichte,
       "Wieder kaufen": w.wiederkaufen, Notizen: w.notizen, Favorit: w.favorit ? "Ja" : "Nein",
       Etikett: w.etikettVorne || "",
     }));
@@ -537,6 +616,7 @@ function Weinkeller({ onLogout }) {
             typ: String(r["Typ"] || ""), cremig: String(r["Cremig"] || ""),
             bezugsquelle: String(r["Bezugsquelle"] || ""), preis: String(r["Preis (€)"] || ""),
             weinbeschreibung: String(r["Weinbeschreibung"] || ""), speiseempfehlung: String(r["Speiseempfehlung"] || ""),
+            hintergrundgeschichte: String(r["Hintergrundgeschichte"] || ""),
             anzahlFlaschen: String(r["Anzahl Flaschen"] || ""),
             bewertung: parseInt(r["Bewertung (1-10)"], 10) || 5,
             wiederkaufen: String(r["Wieder kaufen"] || ""), notizen: String(r["Notizen"] || ""),
@@ -730,52 +810,14 @@ function Weinkeller({ onLogout }) {
 
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {filtered.map((w) => (
-            <div key={w.id} style={{ background: "#FFFDF9", border: "1px solid #E5DBC8", borderRadius: 12, padding: 14, position: "relative", borderLeft: `5px solid ${TYP_COLORS[w.typ] || "#7A2038"}` }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <div style={{ display: "flex", gap: 10 }}>
-                  {w.etikettVorne && <LabelThumb src={w.etikettVorne} onClick={() => setLightbox(w.etikettVorne)} />}
-                  <div>
-                    <div className="display-font" style={{ fontSize: 17, fontWeight: 600 }}>{w.weinname || "—"}</div>
-                    <div style={{ fontSize: 13, color: "#7A6F63" }}>{w.weingut}{w.jahrgang ? ` · ${w.jahrgang}` : ""}</div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
-                      {w.typ && (
-                        <span style={{ fontSize: 11, fontWeight: 600, color: "#FFFDF9", background: TYP_COLORS[w.typ] || "#7A2038", borderRadius: 4, padding: "1px 7px" }}>
-                          {w.typ}
-                        </span>
-                      )}
-                      <span style={{ fontSize: 11, fontWeight: 700, color: "#7A2038", background: "#F3E9D8", borderRadius: 4, padding: "1px 7px" }}>
-                        {w.bewertung}/10
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div style={{ display: "flex", gap: 6 }}>
-                  <button onClick={() => toggleFavorit(w.id)} style={{ background: "none", border: "none", cursor: "pointer", color: w.favorit ? "#C9A961" : "#D8CDB8" }}>
-                    <Star size={24} fill={w.favorit ? "#C9A961" : "none"} />
-                  </button>
-                  <button onClick={() => openEditForm(w)} style={{ background: "none", border: "none", cursor: "pointer", color: "#7A6F63" }}><Pencil size={15} /></button>
-                  <button onClick={() => deleteWine(w.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#B0453F" }}><Trash2 size={15} /></button>
-                </div>
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 14px", fontSize: 13, color: "#4A4038", marginTop: 8 }}>
-                {w.land && <span>{w.land}{w.region ? `, ${w.region}` : ""}</span>}
-                {w.traube && <span>{w.traube}</span>}
-                {w.alkohol && <span>{w.alkohol}% Vol.</span>}
-                {w.bezugsquelle && <span>Bezug: {w.bezugsquelle}</span>}
-                {w.preis && <span>{w.preis} €</span>}
-                {w.anzahlFlaschen && <span>🍾 {w.anzahlFlaschen} {String(w.anzahlFlaschen) === "1" ? "Flasche" : "Flaschen"}</span>}
-              </div>
-              <div style={{ marginTop: 10 }}>
-                <SaeureBar value={w.saeure || 3} />
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 10, fontSize: 12 }}>
-                {w.typ === "Weiß" && w.cremig && <span style={{ color: "#7A6F63" }}>Cremig: {w.cremig}</span>}
-              </div>
-              {w.wiederkaufen && <div style={{ marginTop: 6, fontSize: 12, color: "#7A6F63" }}>Wieder kaufen: {w.wiederkaufen}</div>}
-              {w.speiseempfehlung && <div style={{ marginTop: 6, fontSize: 12, color: "#7A6F63" }}>🍽️ Passt zu: {w.speiseempfehlung}</div>}
-              {w.weinbeschreibung && <div style={{ marginTop: 6, fontSize: 12, color: "#7A6F63" }}>{w.weinbeschreibung}</div>}
-              {w.notizen && <div style={{ marginTop: 6, fontSize: 12, fontStyle: "italic", color: "#7A6F63" }}>{w.notizen}</div>}
-            </div>
+            <WineCard
+              key={w.id}
+              w={w}
+              onToggleFavorit={toggleFavorit}
+              onEdit={openEditForm}
+              onDelete={deleteWine}
+              onImageClick={setLightbox}
+            />
           ))}
         </div>
       </div>
@@ -865,12 +907,16 @@ function Weinkeller({ onLogout }) {
                 </select>
               </div>
               <div style={{ gridColumn: "1 / -1" }}>
-                <label>Weinbeschreibung (aus dem Netz)</label>
-                <textarea rows={2} value={form.weinbeschreibung} onChange={(e) => setForm({ ...form, weinbeschreibung: e.target.value })} placeholder="Von Wein am Limit, Tesdorpf oder Lobenberg übernommen" />
+                <label>Weinbeschreibung (eigene Zusammenfassung, nicht wörtlich kopiert)</label>
+                <textarea rows={2} value={form.weinbeschreibung} onChange={(e) => setForm({ ...form, weinbeschreibung: e.target.value })} placeholder="Kurz: Charakter, Aromen, Struktur" />
               </div>
               <div style={{ gridColumn: "1 / -1" }}>
                 <label>Speiseempfehlung</label>
                 <input value={form.speiseempfehlung} onChange={(e) => setForm({ ...form, speiseempfehlung: e.target.value })} placeholder="z. B. Rotwild, Hartkäse, dunkle Schokolade" />
+              </div>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label>Hintergrundgeschichte</label>
+                <textarea rows={2} value={form.hintergrundgeschichte} onChange={(e) => setForm({ ...form, hintergrundgeschichte: e.target.value })} placeholder="Winzergeschichte, Produktionsdetails, Anekdoten" />
               </div>
               <div style={{ gridColumn: "1 / -1" }}>
                 <label>Notizen (eure eigenen Eindrücke)</label>
