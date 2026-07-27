@@ -181,7 +181,7 @@ const EMPTY_FORM = {
   id: null, weingut: "", weinname: "", land: "", region: "", jahrgang: "",
   traube: "", alkohol: "", saeure: 3, typ: "Rot", cremig: "", bezugsquelle: "",
   bewertung: 7, wiederkaufen: "Nein", notizen: "", etikettVorne: "",
-  favorit: false, preis: "", anzahlFlaschen: "", weinbeschreibung: "", speiseempfehlung: "", hintergrundgeschichte: "",
+  favorit: false, preis: "", anzahlFlaschen: "", weinbeschreibung: "", speiseempfehlung: "", hintergrundgeschichte: "", regionBeschreibung: "",
 };
 
 const FIELD_MAP = {
@@ -195,6 +195,7 @@ const FIELD_MAP = {
   weinbeschreibung: "weinbeschreibung", beschreibung: "weinbeschreibung",
   speiseempfehlung: "speiseempfehlung", speisenempfehlung: "speiseempfehlung", speiseempfehlungen: "speiseempfehlung",
   hintergrundgeschichte: "hintergrundgeschichte", hintergrund: "hintergrundgeschichte", geschichte: "hintergrundgeschichte",
+  "region kurz vorgestellt": "regionBeschreibung", regionbeschreibung: "regionBeschreibung", destination: "regionBeschreibung",
 };
 
 function parseQuickText(text) {
@@ -207,7 +208,10 @@ function parseQuickText(text) {
     const key = FIELD_MAP[rawKey];
     if (!key || !rawVal) return;
     if (key === "saeure" || key === "bewertung" || key === "anzahlFlaschen") {
-      const n = parseInt(rawVal.replace(/[^\d]/g, ""), 10);
+      // Nur die führende Zahl nehmen (z.B. "3 (Ausgewogen) - 6,16 g/l..." -> 3),
+      // nicht alle Ziffern im Text zusammenkleben (das ergäbe sonst z.B. 3616).
+      const m = rawVal.match(/^\s*(\d+)/);
+      const n = m ? parseInt(m[1], 10) : NaN;
       if (!isNaN(n)) out[key] = n;
     } else if (key === "cremig") {
       out[key] = /ja/i.test(rawVal) ? "Ja" : /nein/i.test(rawVal) ? "Nein" : "";
@@ -302,7 +306,7 @@ function buildShopSearchUrl(w) {
 
 function WineCard({ w, onToggleFavorit, onEdit, onDelete, onImageClick }) {
   const [expanded, setExpanded] = useState(false);
-  const hasMore = w.weinbeschreibung || w.speiseempfehlung || w.hintergrundgeschichte;
+  const hasMore = w.weinbeschreibung || w.speiseempfehlung || w.hintergrundgeschichte || w.regionBeschreibung;
   const teaser = w.weinbeschreibung
     ? w.weinbeschreibung.split(/(?<=[.!?])\s+/).slice(0, 1).join(" ")
     : "";
@@ -314,7 +318,10 @@ function WineCard({ w, onToggleFavorit, onEdit, onDelete, onImageClick }) {
           {w.etikettVorne && <LabelThumb src={w.etikettVorne} onClick={() => onImageClick(w.etikettVorne)} />}
           <div>
             <div className="display-font" style={{ fontSize: 17, fontWeight: 600 }}>{w.weinname || "—"}</div>
-            <div style={{ fontSize: 13, color: "#7A6F63" }}>{w.weingut}{w.jahrgang ? ` · ${w.jahrgang}` : ""}</div>
+            <div style={{ fontSize: 13.5 }}>
+              <span style={{ fontWeight: 700, color: "#4A3A30" }}>{w.weingut}</span>
+              {w.jahrgang && <span style={{ color: "#A89C89" }}>{` · ${w.jahrgang}`}</span>}
+            </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
               {w.typ && (
                 <span style={{ fontSize: 11, fontWeight: 600, color: "#FFFDF9", background: TYP_COLORS[w.typ] || "#7A2038", borderRadius: 4, padding: "1px 7px" }}>
@@ -375,6 +382,7 @@ function WineCard({ w, onToggleFavorit, onEdit, onDelete, onImageClick }) {
         <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
           {w.speiseempfehlung && <div style={{ fontSize: 12, color: "#7A6F63" }}>🍽️ Passt zu: {w.speiseempfehlung}</div>}
           {w.weinbeschreibung && <div style={{ fontSize: 12, color: "#7A6F63" }}>{w.weinbeschreibung}</div>}
+          {w.regionBeschreibung && <div style={{ fontSize: 12, color: "#7A6F63" }}>📍 {w.regionBeschreibung}</div>}
           {w.hintergrundgeschichte && <div style={{ fontSize: 12, color: "#7A6F63" }}>{w.hintergrundgeschichte}</div>}
         </div>
       )}
@@ -648,7 +656,7 @@ function Weinkeller({ onLogout }) {
       Jahrgang: w.jahrgang, Rebsorte: w.traube, "Alkohol (%)": w.alkohol,
       "Säure (1-5)": w.saeure, Typ: w.typ, Cremig: w.typ === "Weiß" ? w.cremig : "",
       Bezugsquelle: w.bezugsquelle, "Preis (€)": w.preis, "Anzahl Flaschen": w.anzahlFlaschen, "Bewertung (1-10)": w.bewertung,
-      Weinbeschreibung: w.weinbeschreibung, Speiseempfehlung: w.speiseempfehlung, Hintergrundgeschichte: w.hintergrundgeschichte,
+      Weinbeschreibung: w.weinbeschreibung, Speiseempfehlung: w.speiseempfehlung, "Region kurz vorgestellt": w.regionBeschreibung, Hintergrundgeschichte: w.hintergrundgeschichte,
       "Wieder kaufen": w.wiederkaufen, Notizen: w.notizen, Favorit: w.favorit ? "Ja" : "Nein",
       Etikett: w.etikettVorne || "",
     }));
@@ -714,6 +722,7 @@ function Weinkeller({ onLogout }) {
             bezugsquelle: String(r["Bezugsquelle"] || ""), preis: String(r["Preis (€)"] || ""),
             weinbeschreibung: String(r["Weinbeschreibung"] || ""), speiseempfehlung: String(r["Speiseempfehlung"] || ""),
             hintergrundgeschichte: String(r["Hintergrundgeschichte"] || ""),
+            regionBeschreibung: String(r["Region kurz vorgestellt"] || ""),
             anzahlFlaschen: String(r["Anzahl Flaschen"] || ""),
             bewertung: parseInt(r["Bewertung (1-10)"], 10) || 5,
             wiederkaufen: String(r["Wieder kaufen"] || ""), notizen: String(r["Notizen"] || ""),
@@ -1039,6 +1048,10 @@ function Weinkeller({ onLogout }) {
               <div style={{ gridColumn: "1 / -1" }}>
                 <label>Speiseempfehlung</label>
                 <input value={form.speiseempfehlung} onChange={(e) => setForm({ ...form, speiseempfehlung: e.target.value })} placeholder="z. B. Rotwild, Hartkäse, dunkle Schokolade" />
+              </div>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label>Region kurz vorgestellt</label>
+                <textarea rows={2} value={form.regionBeschreibung} onChange={(e) => setForm({ ...form, regionBeschreibung: e.target.value })} placeholder="Was zeichnet diese Appellation/Region aus? z. B. was ist ein Pommard, was definiert das Douro-Tal etc." />
               </div>
               <div style={{ gridColumn: "1 / -1" }}>
                 <label>Hintergrundgeschichte</label>
