@@ -114,6 +114,7 @@ const Trash2 = (p) => <Icon {...p}><polyline points="3 6 5 6 21 6" /><path d="M1
 const Pencil = (p) => <Icon {...p}><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /></Icon>;
 const Star = (p) => <Icon {...p}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></Icon>;
 const WineIcon = (p) => <Icon {...p}><path d="M8 22h8" /><path d="M12 15v7" /><path d="M12 15a6 6 0 0 0 6-6c0-2-1.5-3-1.5-5.5S18 2 18 2H6s1.5 1 1.5 3.5S6 11 6 13a6 6 0 0 0 6 2Z" /></Icon>;
+const Maximize2 = (p) => <Icon {...p}><polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" /><line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" /></Icon>;
 
 /* ---------- Konstanten (unverändert aus der App) ---------- */
 const TYP_COLORS = {
@@ -180,6 +181,7 @@ function SaeureBar({ value = 3 }) {
 const EMPTY_FORM = {
   id: null, weingut: "", weinname: "", land: "", region: "", jahrgang: "",
   traube: "", alkohol: "", saeure: 3, typ: "Rot", cremig: "", bezugsquelle: "",
+  alternativeBezugsquelle: "",
   bewertung: 7, wiederkaufen: "Nein", notizen: "", etikettVorne: "",
   favorit: false, preis: "", anzahlFlaschen: "", weinbeschreibung: "", speiseempfehlung: "", hintergrundgeschichte: "", regionBeschreibung: "",
 };
@@ -188,7 +190,10 @@ const FIELD_MAP = {
   weingut: "weingut", weinname: "weinname", land: "land", region: "region",
   jahrgang: "jahrgang", traubensorte: "traube", traube: "traube", rebsorte: "traube",
   alkoholgehalt: "alkohol", alkohol: "alkohol", "säure": "saeure", saeure: "saeure",
-  typ: "typ", cremig: "cremig", bezugsquelle: "bezugsquelle", bewertung: "bewertung",
+  typ: "typ", cremig: "cremig", bezugsquelle: "bezugsquelle",
+  "alternative bezugsquelle": "alternativeBezugsquelle", "alternative bezugsquelle (online)": "alternativeBezugsquelle",
+  "online gefunden bei": "alternativeBezugsquelle", alternativebezugsquelle: "alternativeBezugsquelle",
+  bewertung: "bewertung",
   wiederkaufen: "wiederkaufen", notizen: "notizen", "etikett vorne": "etikettVorne",
   etikettvorne: "etikettVorne", favorit: "favorit", preis: "preis",
   "anzahl flaschen": "anzahlFlaschen", anzahlflaschen: "anzahlFlaschen", flaschen: "anzahlFlaschen",
@@ -231,6 +236,14 @@ function parseQuickText(text) {
     }
   });
   return out;
+}
+
+function formatPreis(preis) {
+  if (!preis) return "";
+  const trimmed = String(preis).trim();
+  // Falls der Nutzer das Eurozeichen bereits selbst eingegeben hat (z.B. "25 €" oder "ca. 25€"),
+  // nicht nochmal anhängen - sonst entsteht "25 € €".
+  return trimmed.includes("€") ? trimmed : `${trimmed} €`;
 }
 
 function LabelThumb({ src, onClick }) {
@@ -304,7 +317,7 @@ function buildShopSearchUrl(w) {
   return `https://www.google.com/search?q=${encodeURIComponent(`${query} kaufen`)}`;
 }
 
-function WineCard({ w, onToggleFavorit, onEdit, onDelete, onImageClick }) {
+function WineCard({ w, onToggleFavorit, onEdit, onDelete, onImageClick, onExpand }) {
   const [expanded, setExpanded] = useState(false);
   const hasMore = w.weinbeschreibung || w.speiseempfehlung || w.hintergrundgeschichte || w.regionBeschreibung;
   const teaser = w.weinbeschreibung
@@ -335,6 +348,9 @@ function WineCard({ w, onToggleFavorit, onEdit, onDelete, onImageClick }) {
           </div>
         </div>
         <div style={{ display: "flex", gap: 6 }}>
+          <button onClick={() => onExpand(w)} title="Vollansicht öffnen" style={{ background: "none", border: "none", cursor: "pointer", color: "#7A6F63" }}>
+            <Maximize2 size={15} />
+          </button>
           <button onClick={() => onToggleFavorit(w.id)} style={{ background: "none", border: "none", cursor: "pointer", color: w.favorit ? "#C9A961" : "#D8CDB8" }}>
             <Star size={24} fill={w.favorit ? "#C9A961" : "none"} />
           </button>
@@ -360,9 +376,13 @@ function WineCard({ w, onToggleFavorit, onEdit, onDelete, onImageClick }) {
             )}
           </span>
         )}
-        {w.preis && <span>{w.preis} €</span>}
+        {w.preis && <span>{formatPreis(w.preis)}</span>}
         {w.anzahlFlaschen && <span>🍾 {w.anzahlFlaschen} {String(w.anzahlFlaschen) === "1" ? "Flasche" : "Flaschen"}</span>}
       </div>
+
+      {w.alternativeBezugsquelle && (
+        <div style={{ marginTop: 6, fontSize: 12, color: "#A89C89" }}>🔗 Auch online bei: {w.alternativeBezugsquelle}</div>
+      )}
 
       <div style={{ marginTop: 10 }}>
         <SaeureBar value={w.saeure || 3} />
@@ -423,6 +443,7 @@ function Weinkeller({ onLogout }) {
   const [savedFlash, setSavedFlash] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [lightbox, setLightbox] = useState(null);
+  const [detailWine, setDetailWine] = useState(null);
   const [copyFlash, setCopyFlash] = useState(false);
 
   // Verbindung zu Firestore aufbauen und live auf Änderungen hören (auch von anderen Geräten)
@@ -655,7 +676,7 @@ function Weinkeller({ onLogout }) {
       Weingut: w.weingut, Weinname: w.weinname, Land: w.land, Region: w.region,
       Jahrgang: w.jahrgang, Rebsorte: w.traube, "Alkohol (%)": w.alkohol,
       "Säure (1-5)": w.saeure, Typ: w.typ, Cremig: w.typ === "Weiß" ? w.cremig : "",
-      Bezugsquelle: w.bezugsquelle, "Preis (€)": w.preis, "Anzahl Flaschen": w.anzahlFlaschen, "Bewertung (1-10)": w.bewertung,
+      Bezugsquelle: w.bezugsquelle, "Alternative Bezugsquelle (online)": w.alternativeBezugsquelle, "Preis (€)": w.preis, "Anzahl Flaschen": w.anzahlFlaschen, "Bewertung (1-10)": w.bewertung,
       Weinbeschreibung: w.weinbeschreibung, Speiseempfehlung: w.speiseempfehlung, "Region kurz vorgestellt": w.regionBeschreibung, Hintergrundgeschichte: w.hintergrundgeschichte,
       "Wieder kaufen": w.wiederkaufen, Notizen: w.notizen, Favorit: w.favorit ? "Ja" : "Nein",
       Etikett: w.etikettVorne || "",
@@ -719,7 +740,7 @@ function Weinkeller({ onLogout }) {
             jahrgang: parseInt(r["Jahrgang"], 10) || "", traube: String(r["Rebsorte"] || ""),
             alkohol: String(r["Alkohol (%)"] || ""), saeure: parseInt(r["Säure (1-5)"], 10) || 3,
             typ: String(r["Typ"] || ""), cremig: String(r["Cremig"] || ""),
-            bezugsquelle: String(r["Bezugsquelle"] || ""), preis: String(r["Preis (€)"] || ""),
+            bezugsquelle: String(r["Bezugsquelle"] || ""), alternativeBezugsquelle: String(r["Alternative Bezugsquelle (online)"] || ""), preis: String(r["Preis (€)"] || ""),
             weinbeschreibung: String(r["Weinbeschreibung"] || ""), speiseempfehlung: String(r["Speiseempfehlung"] || ""),
             hintergrundgeschichte: String(r["Hintergrundgeschichte"] || ""),
             regionBeschreibung: String(r["Region kurz vorgestellt"] || ""),
@@ -937,6 +958,7 @@ function Weinkeller({ onLogout }) {
               onEdit={openEditForm}
               onDelete={deleteWine}
               onImageClick={setLightbox}
+              onExpand={setDetailWine}
             />
           ))}
         </div>
@@ -950,6 +972,96 @@ function Weinkeller({ onLogout }) {
           <img src={lightbox} alt="Etikett vergrößert" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "100%", maxHeight: "90vh", borderRadius: 8, boxShadow: "0 8px 30px rgba(0,0,0,0.4)" }} />
         </div>
       )}
+
+      {detailWine && (() => {
+        // Immer die aktuellste Version aus wines nehmen (falls zwischenzeitlich bearbeitet/aktualisiert),
+        // mit Fallback auf die zum Öffnen übergebene Kopie.
+        const dw = wines.find((w2) => w2.id === detailWine.id) || detailWine;
+        return (
+          <div onClick={() => setDetailWine(null)} style={{ position: "fixed", inset: 0, background: "rgba(43,35,32,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 60, padding: 20 }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ background: "#FFFDF9", width: "100%", maxWidth: 640, maxHeight: "88vh", overflowY: "auto", borderRadius: 16, padding: 26, position: "relative", borderTop: `6px solid ${TYP_COLORS[dw.typ] || "#7A2038"}` }}>
+              <button onClick={() => setDetailWine(null)} style={{ position: "absolute", top: 16, right: 16, background: "#F5F0E6", border: "none", borderRadius: "50%", width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#7A6F63" }}>
+                <X size={18} />
+              </button>
+
+              <div style={{ display: "flex", gap: 14 }}>
+                {dw.etikettVorne && (
+                  <img src={dw.etikettVorne} alt="Etikett" onClick={() => setLightbox(dw.etikettVorne)}
+                    style={{ width: 68, height: 90, objectFit: "cover", borderRadius: 6, border: "1px solid #E5DBC8", flexShrink: 0, cursor: "pointer" }} />
+                )}
+                <div>
+                  <div className="display-font" style={{ fontSize: 24, fontWeight: 700 }}>{dw.weinname || "—"}</div>
+                  <div style={{ fontSize: 16, marginTop: 2 }}>
+                    <span style={{ fontWeight: 700, color: "#4A3A30" }}>{dw.weingut}</span>
+                    {dw.jahrgang && <span style={{ color: "#A89C89" }}>{` · ${dw.jahrgang}`}</span>}
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
+                    {dw.typ && (
+                      <span style={{ fontSize: 12, fontWeight: 600, color: "#FFFDF9", background: TYP_COLORS[dw.typ] || "#7A2038", borderRadius: 5, padding: "2px 9px" }}>
+                        {dw.typ}
+                      </span>
+                    )}
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "#FFFDF9", background: bewertungFarbe(dw.bewertung), borderRadius: 5, padding: "2px 9px" }}>
+                      {dw.bewertung}/10
+                    </span>
+                    {dw.favorit && <Star size={18} color="#C9A961" fill="#C9A961" />}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 18px", fontSize: 15, color: "#4A4038", marginTop: 16 }}>
+                {dw.land && <span>{dw.land}{dw.region ? `, ${dw.region}` : ""}</span>}
+                {dw.traube && <span>{dw.traube}</span>}
+                {dw.alkohol && <span>{dw.alkohol}% Vol.</span>}
+                {dw.preis && <span>{formatPreis(dw.preis)}</span>}
+                {dw.anzahlFlaschen && <span>🍾 {dw.anzahlFlaschen} {String(dw.anzahlFlaschen) === "1" ? "Flasche" : "Flaschen"}</span>}
+              </div>
+
+              {dw.bezugsquelle && <div style={{ marginTop: 6, fontSize: 15, color: "#4A4038" }}>Bezug: {dw.bezugsquelle}</div>}
+              {dw.alternativeBezugsquelle && <div style={{ marginTop: 4, fontSize: 14, color: "#A89C89" }}>🔗 Auch online bei: {dw.alternativeBezugsquelle}</div>}
+
+              <div style={{ marginTop: 18, maxWidth: 280 }}>
+                <SaeureBar value={dw.saeure || 3} />
+              </div>
+
+              {dw.typ === "Weiß" && dw.cremig && <div style={{ marginTop: 14, fontSize: 14, color: "#7A6F63" }}>Cremig: {dw.cremig}</div>}
+              {dw.wiederkaufen && <div style={{ marginTop: 6, fontSize: 14, color: "#7A6F63" }}>Wieder kaufen: {dw.wiederkaufen}</div>}
+
+              {dw.notizen && (
+                <div style={{ marginTop: 16, fontSize: 15, fontStyle: "italic", color: "#4A4038", lineHeight: 1.5 }}>{dw.notizen}</div>
+              )}
+
+              {dw.weinbeschreibung && (
+                <div style={{ marginTop: 18 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "#A89C89", textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: 4 }}>Weinbeschreibung</div>
+                  <div style={{ fontSize: 15.5, color: "#2B2320", lineHeight: 1.55 }}>{dw.weinbeschreibung}</div>
+                </div>
+              )}
+
+              {dw.speiseempfehlung && (
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "#A89C89", textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: 4 }}>🍽️ Speiseempfehlung</div>
+                  <div style={{ fontSize: 15.5, color: "#2B2320", lineHeight: 1.55 }}>{dw.speiseempfehlung}</div>
+                </div>
+              )}
+
+              {dw.regionBeschreibung && (
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "#A89C89", textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: 4 }}>📍 Region kurz vorgestellt</div>
+                  <div style={{ fontSize: 15.5, color: "#2B2320", lineHeight: 1.55 }}>{dw.regionBeschreibung}</div>
+                </div>
+              )}
+
+              {dw.hintergrundgeschichte && (
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "#A89C89", textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: 4 }}>Hintergrundgeschichte</div>
+                  <div style={{ fontSize: 15.5, color: "#2B2320", lineHeight: 1.55 }}>{dw.hintergrundgeschichte}</div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {showForm && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(43,35,32,0.5)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 50 }}>
@@ -1026,6 +1138,10 @@ function Weinkeller({ onLogout }) {
                   <option value="Einzelhandel">Einzelhandel</option>
                   <option value="Unbekannt">Unbekannt</option>
                 </select>
+              </div>
+              <div>
+                <label>Alternative Bezugsquelle (online)</label>
+                <input placeholder="z. B. Tesdorpf – 43,90 €" value={form.alternativeBezugsquelle} onChange={(e) => setForm({ ...form, alternativeBezugsquelle: e.target.value })} />
               </div>
               <div><label>Preis (€)</label><input placeholder="z. B. 24,30 oder ca. 25" value={form.preis} onChange={(e) => setForm({ ...form, preis: e.target.value })} /></div>
               <div><label>Anzahl Flaschen</label><input type="number" min="0" placeholder="z. B. 3" value={form.anzahlFlaschen} onChange={(e) => setForm({ ...form, anzahlFlaschen: e.target.value })} /></div>
