@@ -1055,7 +1055,18 @@ function Weinkeller({ onLogout }) {
                 {dw.anzahlFlaschen && <span>🍾 {dw.anzahlFlaschen} {String(dw.anzahlFlaschen) === "1" ? "Flasche" : "Flaschen"}</span>}
               </div>
 
-              {dw.bezugsquelle && <div style={{ marginTop: 6, fontSize: 15, color: "#4A4038" }}>Bezug: {dw.bezugsquelle}</div>}
+              {dw.bezugsquelle && (
+                <div style={{ marginTop: 6, fontSize: 15, color: "#4A4038", display: "flex", alignItems: "center", gap: 6 }}>
+                  Bezug: {dw.bezugsquelle}
+                  {Object.prototype.hasOwnProperty.call(ONLINE_BEZUGSQUELLEN, dw.bezugsquelle) && (
+                    <a href={buildShopSearchUrl(dw)} target="_blank" rel="noopener noreferrer"
+                      title={`${dw.weinname || "Wein"} online suchen`}
+                      style={{ display: "inline-flex", alignItems: "center", color: "#7A2038", textDecoration: "none" }}>
+                      🔎
+                    </a>
+                  )}
+                </div>
+              )}
               {dw.alternativeBezugsquelle && <div style={{ marginTop: 4, fontSize: 14, color: "#A89C89" }}>🔗 Auch online bei: {dw.alternativeBezugsquelle}</div>}
 
               <div style={{ marginTop: 18, maxWidth: 280 }}>
