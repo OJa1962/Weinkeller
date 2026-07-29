@@ -113,8 +113,8 @@ const Upload = (p) => <Icon {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2
 const Trash2 = (p) => <Icon {...p}><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" /></Icon>;
 const Pencil = (p) => <Icon {...p}><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /></Icon>;
 const Star = (p) => <Icon {...p}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></Icon>;
-const WineIcon = (p) => <Icon {...p}><path d="M8 22h8" /><path d="M12 15v7" /><path d="M12 15a6 6 0 0 0 6-6c0-2-1.5-3-1.5-5.5S18 2 18 2H6s1.5 1 1.5 3.5S6 11 6 13a6 6 0 0 0 6 2Z" /></Icon>;
 const Maximize2 = (p) => <Icon {...p}><polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" /><line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" /></Icon>;
+const WineIcon = (p) => <Icon {...p}><path d="M8 22h8" /><path d="M12 15v7" /><path d="M12 15a6 6 0 0 0 6-6c0-2-1.5-3-1.5-5.5S18 2 18 2H6s1.5 1 1.5 3.5S6 11 6 13a6 6 0 0 0 6 2Z" /></Icon>;
 
 /* ---------- Konstanten (unverändert aus der App) ---------- */
 const TYP_COLORS = {
@@ -159,7 +159,7 @@ function SaeureBar({ value = 3, typ, gl }) {
   const pos = ((v - 1) / 4) * 100;
   // Die Einordnung ist typrelativ (z.B. ein Champagner mit 7 g/l gilt für seinen Typ als
   // "ausgewogen", ein Rotwein mit 7 g/l wäre dagegen extrem). Das muss im Label sichtbar sein,
-  // sonst wirkt der Balken wie eine absolute Skala - genau das war die berechtigte Kritik.
+  // sonst wirkt der Balken wie eine absolute Skala.
   const typLabel = typ ? ` (für ${typ})` : "";
   return (
     <div>
@@ -189,7 +189,7 @@ const EMPTY_FORM = {
   id: null, weingut: "", weinname: "", land: "", region: "", jahrgang: "",
   traube: "", alkohol: "", saeure: 3, saeureGL: "", typ: "Rot", cremig: "", bezugsquelle: "",
   alternativeBezugsquelle: "",
-  bewertung: 7, wiederkaufen: "Nein", notizen: "", etikettVorne: "",
+  bewertung: "", wiederkaufen: "", notizen: "", etikettVorne: "",
   favorit: false, preis: "", anzahlFlaschen: "", weinbeschreibung: "", speiseempfehlung: "", hintergrundgeschichte: "", regionBeschreibung: "",
 };
 
@@ -210,6 +210,19 @@ const FIELD_MAP = {
   hintergrundgeschichte: "hintergrundgeschichte", hintergrund: "hintergrundgeschichte", geschichte: "hintergrundgeschichte",
   "region kurz vorgestellt": "regionBeschreibung", regionbeschreibung: "regionBeschreibung", destination: "regionBeschreibung",
 };
+
+// Normalisiert einen Weingut-Namen für Vergleiche: entfernt Klammerzusätze (z.B. Rechtsform-Erklärungen)
+// und gängige Rechtsform-Kürzel, damit "Weingut Moritz" und "Weingut Moritz (Rolf Anfehlig GmbH)"
+// als dasselbe Weingut erkannt werden, auch wenn die Recherche mal mit, mal ohne Rechtsform liefert.
+function weingutNormalisiert(s) {
+  return (s || "")
+    .toLowerCase()
+    .replace(/\(.*?\)/g, " ")
+    .replace(/\b(gmbh(\s*&\s*co\.?\s*kg)?|e\.?\s*k\.?|ohg|kg|lda\.?|ltda\.?|ltd\.?|limited|inc\.?|s\.?a\.?|sarl|s\.?r\.?l\.?|&\s*co\.?)\b/g, " ")
+    .replace(/[.,]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 function parseQuickText(text) {
   const out = {};
@@ -239,19 +252,16 @@ function parseQuickText(text) {
       else out[key] = rawVal;
     } else if (key === "favorit") {
       out[key] = /ja/i.test(rawVal);
+    } else if (key === "alkohol") {
+      // Nur die reine Zahl übernehmen (z.B. "12,5% vol" oder "12,5 % Vol." -> "12,5"),
+      // da die Karten-Anzeige selbst schon "% Vol." anhängt - sonst stünde es doppelt da.
+      const m = rawVal.match(/^\s*([\d.,]+)/);
+      out[key] = m ? m[1] : rawVal;
     } else {
       out[key] = rawVal;
     }
   });
   return out;
-}
-
-function formatPreis(preis) {
-  if (!preis) return "";
-  const trimmed = String(preis).trim();
-  // Falls der Nutzer das Eurozeichen bereits selbst eingegeben hat (z.B. "25 €" oder "ca. 25€"),
-  // nicht nochmal anhängen - sonst entsteht "25 € €".
-  return trimmed.includes("€") ? trimmed : `${trimmed} €`;
 }
 
 function LabelThumb({ src, onClick }) {
@@ -349,9 +359,11 @@ function WineCard({ w, onToggleFavorit, onEdit, onDelete, onImageClick, onExpand
                   {w.typ}
                 </span>
               )}
-              <span style={{ fontSize: 11, fontWeight: 700, color: "#FFFDF9", background: bewertungFarbe(w.bewertung), borderRadius: 4, padding: "1px 7px" }}>
-                {w.bewertung}/10
-              </span>
+              {w.bewertung && (
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#FFFDF9", background: bewertungFarbe(w.bewertung), borderRadius: 4, padding: "1px 7px" }}>
+                  {w.bewertung}/10
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -384,7 +396,7 @@ function WineCard({ w, onToggleFavorit, onEdit, onDelete, onImageClick, onExpand
             )}
           </span>
         )}
-        {w.preis && <span>{formatPreis(w.preis)}</span>}
+        {w.preis && <span>{w.preis} €</span>}
         {w.anzahlFlaschen && <span>🍾 {w.anzahlFlaschen} {String(w.anzahlFlaschen) === "1" ? "Flasche" : "Flaschen"}</span>}
       </div>
 
@@ -433,6 +445,7 @@ function Weinkeller({ onLogout }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [quickText, setQuickText] = useState("");
+  const [quickApplied, setQuickApplied] = useState(false);
   const [sortBy1, setSortBy1] = useState("land");
   const [sortBy2, setSortBy2] = useState("keine");
   const [filterTyp, setFilterTyp] = useState("Alle");
@@ -496,13 +509,26 @@ function Weinkeller({ onLogout }) {
     const newId = fb ? fb.doc(fb.collection(fb.db, WINES_COLLECTION)).id : Date.now().toString();
     setForm({ ...EMPTY_FORM, id: newId });
     setQuickText("");
+    setQuickApplied(false);
     setShowForm(true);
   }
 
   function openEditForm(wine) {
     setForm(wine);
     setQuickText("");
+    setQuickApplied(false);
     setShowForm(true);
+  }
+
+  // Hebt ein Feld farblich hervor, solange es nach dem Übernehmen der Schnelleingabe
+  // noch leer ist - Erinnerung an das, was noch manuell ausgefüllt werden muss.
+  // Kräftige, klar sichtbare Füllfarbe statt nur dezenter Rahmenänderung, da ein
+  // zu heller Ton in der ohnehin cremefarbenen Optik der App kaum auffällt.
+  function leerStil(val) {
+    const isEmpty = val === "" || val === null || val === undefined;
+    return quickApplied && isEmpty
+      ? { border: "2px solid #C9A961", background: "#FBE3A1" }
+      : {};
   }
 
   function resizeImageDataUrl(dataUrl, maxDim = 1400, quality = 0.82) {
@@ -549,6 +575,7 @@ function Weinkeller({ onLogout }) {
   function applyQuickText() {
     const parsed = parseQuickText(quickText);
     setForm((f) => ({ ...f, ...parsed }));
+    setQuickApplied(true);
   }
 
   function saveForm() {
@@ -623,12 +650,12 @@ function Weinkeller({ onLogout }) {
     if (nurNeuesterJahrgang) {
       const neuesterProWein = {};
       wines.forEach((w) => {
-        const key = `${(w.weingut || "").toLowerCase()}|${(w.weinname || "").toLowerCase()}`;
+        const key = `${weingutNormalisiert(w.weingut)}|${(w.weinname || "").toLowerCase()}`;
         const j = parseInt(w.jahrgang, 10) || 0;
         if (!(key in neuesterProWein) || j > neuesterProWein[key]) neuesterProWein[key] = j;
       });
       list = list.filter((w) => {
-        const key = `${(w.weingut || "").toLowerCase()}|${(w.weinname || "").toLowerCase()}`;
+        const key = `${weingutNormalisiert(w.weingut)}|${(w.weinname || "").toLowerCase()}`;
         const j = parseInt(w.jahrgang, 10) || 0;
         return j === neuesterProWein[key];
       });
@@ -723,7 +750,7 @@ function Weinkeller({ onLogout }) {
   }
 
   function wineKey(w) {
-    return [w.weingut, w.weinname, w.jahrgang].join("|").toLowerCase().trim();
+    return [weingutNormalisiert(w.weingut), w.weinname, w.jahrgang].join("|").toLowerCase().trim();
   }
 
   function importExcel(e) {
@@ -1010,9 +1037,11 @@ function Weinkeller({ onLogout }) {
                         {dw.typ}
                       </span>
                     )}
-                    <span style={{ fontSize: 12, fontWeight: 700, color: "#FFFDF9", background: bewertungFarbe(dw.bewertung), borderRadius: 5, padding: "2px 9px" }}>
-                      {dw.bewertung}/10
-                    </span>
+                    {dw.bewertung && (
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "#FFFDF9", background: bewertungFarbe(dw.bewertung), borderRadius: 5, padding: "2px 9px" }}>
+                        {dw.bewertung}/10
+                      </span>
+                    )}
                     {dw.favorit && <Star size={18} color="#C9A961" fill="#C9A961" />}
                   </div>
                 </div>
@@ -1092,7 +1121,7 @@ function Weinkeller({ onLogout }) {
 
             {!form.hinzugefuegt && form.weingut && form.weinname && (() => {
               const aeltere = wines.filter((w) =>
-                (w.weingut || "").toLowerCase().trim() === form.weingut.toLowerCase().trim() &&
+                weingutNormalisiert(w.weingut) === weingutNormalisiert(form.weingut) &&
                 (w.weinname || "").toLowerCase().trim() === form.weinname.toLowerCase().trim() &&
                 String(w.jahrgang || "") !== String(form.jahrgang || "")
               );
@@ -1106,13 +1135,13 @@ function Weinkeller({ onLogout }) {
             })()}
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              <div><label>Weingut</label><input value={form.weingut} onChange={(e) => setForm({ ...form, weingut: e.target.value })} /></div>
-              <div><label>Weinname</label><input value={form.weinname} onChange={(e) => setForm({ ...form, weinname: e.target.value })} /></div>
-              <div><label>Land</label><input value={form.land} onChange={(e) => setForm({ ...form, land: e.target.value })} /></div>
-              <div><label>Region</label><input value={form.region} onChange={(e) => setForm({ ...form, region: e.target.value })} /></div>
-              <div><label>Jahrgang</label><input value={form.jahrgang} onChange={(e) => setForm({ ...form, jahrgang: e.target.value })} /></div>
-              <div><label>Rebsorte</label><input value={form.traube} onChange={(e) => setForm({ ...form, traube: e.target.value })} /></div>
-              <div><label>Alkohol (%)</label><input value={form.alkohol} onChange={(e) => setForm({ ...form, alkohol: e.target.value })} /></div>
+              <div><label>Weingut</label><input value={form.weingut} onChange={(e) => setForm({ ...form, weingut: e.target.value })} style={leerStil(form.weingut)} /></div>
+              <div><label>Weinname</label><input value={form.weinname} onChange={(e) => setForm({ ...form, weinname: e.target.value })} style={leerStil(form.weinname)} /></div>
+              <div><label>Land</label><input value={form.land} onChange={(e) => setForm({ ...form, land: e.target.value })} style={leerStil(form.land)} /></div>
+              <div><label>Region</label><input value={form.region} onChange={(e) => setForm({ ...form, region: e.target.value })} style={leerStil(form.region)} /></div>
+              <div><label>Jahrgang</label><input value={form.jahrgang} onChange={(e) => setForm({ ...form, jahrgang: e.target.value })} style={leerStil(form.jahrgang)} /></div>
+              <div><label>Rebsorte</label><input value={form.traube} onChange={(e) => setForm({ ...form, traube: e.target.value })} style={leerStil(form.traube)} /></div>
+              <div><label>Alkohol (%)</label><input value={form.alkohol} onChange={(e) => setForm({ ...form, alkohol: e.target.value })} style={leerStil(form.alkohol)} /></div>
               <div>
                 <label>Typ</label>
                 <select value={form.typ} onChange={(e) => setForm({ ...form, typ: e.target.value })}>
@@ -1139,7 +1168,7 @@ function Weinkeller({ onLogout }) {
                 </div>
               )}
               <div><label>Bezugsquelle</label>
-                <select value={form.bezugsquelle} onChange={(e) => setForm({ ...form, bezugsquelle: e.target.value })}>
+                <select value={form.bezugsquelle} onChange={(e) => setForm({ ...form, bezugsquelle: e.target.value })} style={leerStil(form.bezugsquelle)}>
                   <option value=""></option>
                   <option value="Webshop Weingut">Webshop Weingut</option>
                   <option value="Ab Hof (Weingut)">Ab Hof (Weingut)</option>
@@ -1154,37 +1183,38 @@ function Weinkeller({ onLogout }) {
               </div>
               <div>
                 <label>Alternative Bezugsquelle (online)</label>
-                <input placeholder="z. B. Tesdorpf – 43,90 €" value={form.alternativeBezugsquelle} onChange={(e) => setForm({ ...form, alternativeBezugsquelle: e.target.value })} />
+                <input placeholder="z. B. Tesdorpf – 43,90 €" value={form.alternativeBezugsquelle} onChange={(e) => setForm({ ...form, alternativeBezugsquelle: e.target.value })} style={leerStil(form.alternativeBezugsquelle)} />
               </div>
-              <div><label>Preis (€)</label><input placeholder="z. B. 24,30 oder ca. 25" value={form.preis} onChange={(e) => setForm({ ...form, preis: e.target.value })} /></div>
-              <div><label>Anzahl Flaschen</label><input type="number" min="0" placeholder="z. B. 3" value={form.anzahlFlaschen} onChange={(e) => setForm({ ...form, anzahlFlaschen: e.target.value })} /></div>
+              <div><label>Preis (€)</label><input placeholder="z. B. 24,30 oder ca. 25" value={form.preis} onChange={(e) => setForm({ ...form, preis: e.target.value })} style={leerStil(form.preis)} /></div>
+              <div><label>Anzahl Flaschen</label><input type="number" min="0" placeholder="z. B. 3" value={form.anzahlFlaschen} onChange={(e) => setForm({ ...form, anzahlFlaschen: e.target.value })} style={leerStil(form.anzahlFlaschen)} /></div>
               <div>
                 <label>Bewertung (1–10)</label>
-                <select value={form.bewertung} onChange={(e) => setForm({ ...form, bewertung: parseInt(e.target.value, 10) })}>
+                <select value={form.bewertung} onChange={(e) => setForm({ ...form, bewertung: e.target.value ? parseInt(e.target.value, 10) : "" })} style={leerStil(form.bewertung)}>
+                  <option value=""></option>
                   {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => <option key={n} value={n}>{n}</option>)}
                 </select>
               </div>
               <div>
                 <label>Wieder kaufen</label>
-                <select value={form.wiederkaufen} onChange={(e) => setForm({ ...form, wiederkaufen: e.target.value })}>
-                  <option>Ja</option><option>Nein</option><option>Vielleicht</option>
+                <select value={form.wiederkaufen} onChange={(e) => setForm({ ...form, wiederkaufen: e.target.value })} style={leerStil(form.wiederkaufen)}>
+                  <option value=""></option><option>Ja</option><option>Nein</option><option>Vielleicht</option>
                 </select>
               </div>
               <div style={{ gridColumn: "1 / -1" }}>
                 <label>Weinbeschreibung (eigene Zusammenfassung, nicht wörtlich kopiert)</label>
-                <textarea rows={2} value={form.weinbeschreibung} onChange={(e) => setForm({ ...form, weinbeschreibung: e.target.value })} placeholder="Kurz: Charakter, Aromen, Struktur" />
+                <textarea rows={2} value={form.weinbeschreibung} onChange={(e) => setForm({ ...form, weinbeschreibung: e.target.value })} placeholder="Kurz: Charakter, Aromen, Struktur" style={leerStil(form.weinbeschreibung)} />
               </div>
               <div style={{ gridColumn: "1 / -1" }}>
                 <label>Speiseempfehlung</label>
-                <input value={form.speiseempfehlung} onChange={(e) => setForm({ ...form, speiseempfehlung: e.target.value })} placeholder="z. B. Rotwild, Hartkäse, dunkle Schokolade" />
+                <input value={form.speiseempfehlung} onChange={(e) => setForm({ ...form, speiseempfehlung: e.target.value })} placeholder="z. B. Rotwild, Hartkäse, dunkle Schokolade" style={leerStil(form.speiseempfehlung)} />
               </div>
               <div style={{ gridColumn: "1 / -1" }}>
                 <label>Region kurz vorgestellt</label>
-                <textarea rows={2} value={form.regionBeschreibung} onChange={(e) => setForm({ ...form, regionBeschreibung: e.target.value })} placeholder="Was zeichnet diese Appellation/Region aus? z. B. was ist ein Pommard, was definiert das Douro-Tal etc." />
+                <textarea rows={2} value={form.regionBeschreibung} onChange={(e) => setForm({ ...form, regionBeschreibung: e.target.value })} placeholder="Was zeichnet diese Appellation/Region aus? z. B. was ist ein Pommard, was definiert das Douro-Tal etc." style={leerStil(form.regionBeschreibung)} />
               </div>
               <div style={{ gridColumn: "1 / -1" }}>
                 <label>Hintergrundgeschichte</label>
-                <textarea rows={2} value={form.hintergrundgeschichte} onChange={(e) => setForm({ ...form, hintergrundgeschichte: e.target.value })} placeholder="Winzergeschichte, Produktionsdetails, Anekdoten" />
+                <textarea rows={2} value={form.hintergrundgeschichte} onChange={(e) => setForm({ ...form, hintergrundgeschichte: e.target.value })} placeholder="Winzergeschichte, Produktionsdetails, Anekdoten" style={leerStil(form.hintergrundgeschichte)} />
               </div>
               <div style={{ gridColumn: "1 / -1" }}>
                 <label>Notizen (eure eigenen Eindrücke)</label>
@@ -1193,7 +1223,7 @@ function Weinkeller({ onLogout }) {
               <div>
                 <label>Etikett vorne</label>
                 <div style={{ display: "flex", gap: 6 }}>
-                  <input placeholder="Bild-URL einfügen" value={form.etikettVorne} onChange={(e) => setForm({ ...form, etikettVorne: e.target.value })} disabled={uploading} />
+                  <input placeholder="Bild-URL einfügen" value={form.etikettVorne} onChange={(e) => setForm({ ...form, etikettVorne: e.target.value })} disabled={uploading} style={leerStil(form.etikettVorne)} />
                   <label style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 38, flexShrink: 0, background: "#EFE6D3", border: "1px solid #DDD2BE", borderRadius: 8, cursor: uploading ? "default" : "pointer", opacity: uploading ? 0.6 : 1 }}>
                     <Upload size={15} />
                     <input type="file" accept="image/*" style={{ display: "none" }} disabled={uploading} onChange={(e) => handleFileUpload("etikettVorne", e.target.files[0])} />
