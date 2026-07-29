@@ -180,7 +180,7 @@ function SaeureBar({ value = 3 }) {
 const EMPTY_FORM = {
   id: null, weingut: "", weinname: "", land: "", region: "", jahrgang: "",
   traube: "", alkohol: "", saeure: 3, typ: "Rot", cremig: "", bezugsquelle: "",
-  bewertung: "", wiederkaufen: "Nein", notizen: "", etikettVorne: "",
+  bewertung: "", wiederkaufen: "", notizen: "", etikettVorne: "",
   favorit: false, preis: "", anzahlFlaschen: "", weinbeschreibung: "", speiseempfehlung: "", hintergrundgeschichte: "", regionBeschreibung: "",
 };
 
@@ -1073,8 +1073,8 @@ function Weinkeller({ onLogout }) {
               </div>
               <div>
                 <label>Wieder kaufen</label>
-                <select value={form.wiederkaufen} onChange={(e) => setForm({ ...form, wiederkaufen: e.target.value })}>
-                  <option>Ja</option><option>Nein</option><option>Vielleicht</option>
+                <select value={form.wiederkaufen} onChange={(e) => setForm({ ...form, wiederkaufen: e.target.value })} style={leerStil(form.wiederkaufen)}>
+                  <option value=""></option><option>Ja</option><option>Nein</option><option>Vielleicht</option>
                 </select>
               </div>
               <div style={{ gridColumn: "1 / -1" }}>
