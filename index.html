@@ -127,6 +127,7 @@ const TYP_COLORS = {
   Schaumwein: "#8FA88E",
   Champagner: "#B8935F",
   "PET NAT": "#A6763F",
+  "Süßwein": "#B8722A",
 };
 
 const SAEURE_COLORS = ["#4E9B57", "#8CA84E", "#D6A24A", "#C97A3F", "#BE3A2B"];
@@ -263,6 +264,7 @@ function parseQuickText(text) {
       else if (v.includes("champ")) out[key] = "Champagner";
       else if (v.includes("pet nat") || v.includes("pétillant") || v.includes("petnat")) out[key] = "PET NAT";
       else if (v.includes("schaum") || v.includes("sekt") || v.includes("crémant") || v.includes("cremant") || v.includes("prosecco") || v.includes("cava")) out[key] = "Schaumwein";
+      else if (v.includes("süßwein") || v.includes("süss") || v.includes("dessertwein") || v.includes("auslese") || v.includes("beerenauslese") || v.includes("eiswein") || v.includes("sauternes") || v.includes("tokaji") || v.includes("tokay")) out[key] = "Süßwein";
       else out[key] = rawVal;
     } else if (key === "favorit") {
       out[key] = /ja/i.test(rawVal);
@@ -344,6 +346,7 @@ const ONLINE_BEZUGSQUELLEN = {
   "Wein am Limit Abo": "weinamlimit.de",
   "Lobenberg": "lobenberg.de",
   "Tesdorpf": "tesdorpf.de",
+  "Restaurant": null, // Bei Restaurant-Weinen ist die Suche besonders sinnvoll, da man noch keine Bezugsquelle kennt
 };
 
 function buildShopSearchUrl(w) {
@@ -661,6 +664,7 @@ function Weinkeller({ onLogout }) {
   const weingueter = useMemo(() => Array.from(new Set(wines.map((w) => w.weingut).filter(Boolean))).sort(), [wines]);
   const trauben = useMemo(() => Array.from(new Set(wines.map((w) => w.traube).filter(Boolean))).sort(), [wines]);
   const jahrgaenge = useMemo(() => Array.from(new Set(wines.map((w) => w.jahrgang).filter(Boolean))).sort((a, b) => b - a), [wines]);
+  const restaurants = useMemo(() => Array.from(new Set(wines.map((w) => w.restaurantName).filter(Boolean))).sort(), [wines]);
 
   function sortValue(w, key) {
     switch (key) {
@@ -948,7 +952,7 @@ function Weinkeller({ onLogout }) {
             <label>Typ</label>
             <select value={filterTyp} onChange={(e) => setFilterTyp(e.target.value)}>
               <option>Alle</option><option>Rot</option><option>Weiß</option><option>Rosé</option>
-              <option>Schaumwein</option><option>Champagner</option><option>PET NAT</option>
+              <option>Schaumwein</option><option>Champagner</option><option>PET NAT</option><option>Süßwein</option>
             </select>
           </div>
           <div style={{ flex: "1 1 110px" }}>
@@ -1219,7 +1223,7 @@ function Weinkeller({ onLogout }) {
               <div>
                 <label>Typ</label>
                 <select value={form.typ} onChange={(e) => setForm({ ...form, typ: e.target.value })}>
-                  <option>Rot</option><option>Weiß</option><option>Rosé</option><option>Schaumwein</option><option>Champagner</option><option>PET NAT</option>
+                  <option>Rot</option><option>Weiß</option><option>Rosé</option><option>Schaumwein</option><option>Champagner</option><option>PET NAT</option><option>Süßwein</option>
                 </select>
               </div>
               <div>
@@ -1277,7 +1281,10 @@ function Weinkeller({ onLogout }) {
               {form.bezugsquelle === "Restaurant" && (
                 <div>
                   <label>Restaurant / Ort</label>
-                  <input placeholder="z. B. Chef's Table, Rote Wand" value={form.restaurantName} onChange={(e) => setForm({ ...form, restaurantName: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.restaurantName)} />
+                  <input list="restaurant-liste" placeholder="z. B. Chef's Table, Rote Wand" value={form.restaurantName} onChange={(e) => setForm({ ...form, restaurantName: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.restaurantName)} />
+                  <datalist id="restaurant-liste">
+                    {restaurants.map((r) => <option key={r} value={r} />)}
+                  </datalist>
                 </div>
               )}
               <div>
