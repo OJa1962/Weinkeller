@@ -93,6 +93,10 @@
   }
   label { font-size: 12px; color: #7A6F63; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; display: block; margin-bottom: 4px; }
   #root { min-height: 100vh; }
+  .wine-grid { display: flex; flex-direction: column; gap: 10px; }
+  @media (min-width: 900px) {
+    .wine-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; align-items: start; }
+  }
 </style>
 </head>
 <body>
@@ -116,6 +120,7 @@ const Upload = (p) => <Icon {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2
 const Trash2 = (p) => <Icon {...p}><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" /></Icon>;
 const Pencil = (p) => <Icon {...p}><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /></Icon>;
 const Star = (p) => <Icon {...p}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></Icon>;
+const Heart = (p) => <Icon {...p}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z" /></Icon>;
 const Maximize2 = (p) => <Icon {...p}><polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" /><line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" /></Icon>;
 const WineIcon = (p) => <Icon {...p}><path d="M8 22h8" /><path d="M12 15v7" /><path d="M12 15a6 6 0 0 0 6-6c0-2-1.5-3-1.5-5.5S18 2 18 2H6s1.5 1 1.5 3.5S6 11 6 13a6 6 0 0 0 6 2Z" /></Icon>;
 
@@ -194,7 +199,7 @@ const EMPTY_FORM = {
   traube: "", alkohol: "", saeure: "", saeureGL: "", typ: "Rot", cremig: "", bezugsquelle: "",
   alternativeBezugsquelle: "",
   bewertung: "", wiederkaufen: "", notizen: "", etikettVorne: "",
-  favorit: false, preis: "", anzahlFlaschen: "", weinbeschreibung: "", speiseempfehlung: "", hintergrundgeschichte: "", regionBeschreibung: "",
+  favorit: false, favoritBJ: false, preis: "", anzahlFlaschen: "", weinbeschreibung: "", speiseempfehlung: "", hintergrundgeschichte: "", regionBeschreibung: "",
   dekantieren: "", dekantierzeit: "", restaurantName: "",
 };
 
@@ -208,7 +213,7 @@ const FIELD_MAP = {
   "online gefunden bei": "alternativeBezugsquelle", alternativebezugsquelle: "alternativeBezugsquelle",
   bewertung: "bewertung",
   wiederkaufen: "wiederkaufen", notizen: "notizen", "etikett vorne": "etikettVorne",
-  etikettvorne: "etikettVorne", favorit: "favorit", preis: "preis",
+  etikettvorne: "etikettVorne", favorit: "favorit", "favorit bj": "favoritBJ", favoritbj: "favoritBJ", preis: "preis",
   "anzahl flaschen": "anzahlFlaschen", anzahlflaschen: "anzahlFlaschen", flaschen: "anzahlFlaschen",
   weinbeschreibung: "weinbeschreibung", beschreibung: "weinbeschreibung",
   speiseempfehlung: "speiseempfehlung", speisenempfehlung: "speiseempfehlung", speiseempfehlungen: "speiseempfehlung",
@@ -266,7 +271,7 @@ function parseQuickText(text) {
       else if (v.includes("schaum") || v.includes("sekt") || v.includes("crémant") || v.includes("cremant") || v.includes("prosecco") || v.includes("cava")) out[key] = "Schaumwein";
       else if (v.includes("süßwein") || v.includes("süss") || v.includes("dessertwein") || v.includes("auslese") || v.includes("beerenauslese") || v.includes("eiswein") || v.includes("sauternes") || v.includes("tokaji") || v.includes("tokay")) out[key] = "Süßwein";
       else out[key] = rawVal;
-    } else if (key === "favorit") {
+    } else if (key === "favorit" || key === "favoritBJ") {
       out[key] = /ja/i.test(rawVal);
     } else if (key === "alkohol") {
       // Nur die reine Zahl übernehmen (z.B. "12,5% vol" oder "12,5 % Vol." -> "12,5"),
@@ -359,7 +364,31 @@ function buildShopSearchUrl(w) {
   return `https://www.google.com/search?q=${encodeURIComponent(`${query} kaufen`)}`;
 }
 
-function WineCard({ w, onToggleFavorit, onEdit, onDelete, onImageClick, onExpand }) {
+// Für "Alternative Bezugsquelle (online)" (Freitext) - erkennt anhand des Textes, welcher
+// der bekannten Händler gemeint ist, und grenzt die Suche entsprechend ein, damit ein
+// erneuter Preis-/Verfügbarkeits-Check zielgerichtet ist statt nur allgemein zu suchen.
+function buildAltSearchUrl(w) {
+  const query = `${w.weingut || ""} ${w.weinname || ""}`.trim();
+  if (!query) return null;
+  const text = (w.alternativeBezugsquelle || "").toLowerCase();
+  // Verneinungen wie "nicht gelistet" oder "kein Webshop" bedeuten: der Händler wurde
+  // GEPRÜFT, aber NICHT gefunden - dann darf die Suche nicht auf genau diese Seite
+  // eingeschränkt werden, sondern muss offen im gesamten Web suchen (z.B. bei einem
+  // bisher unbekannten Händler, den man für einen besonders guten Wein in Kauf nimmt).
+  const verneint = /nicht|kein/.test(text);
+  let domain = null;
+  if (!verneint) {
+    if (text.includes("tesdorpf")) domain = "tesdorpf.de";
+    else if (text.includes("lobenberg")) domain = "lobenberg.de";
+    else if (text.includes("wein am limit") || text.includes("weinamlimit")) domain = "weinamlimit.de";
+  }
+  if (domain) {
+    return `https://www.google.com/search?q=${encodeURIComponent(`site:${domain} ${query}`)}`;
+  }
+  return `https://www.google.com/search?q=${encodeURIComponent(`${query} kaufen`)}`;
+}
+
+function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onEdit, onDelete, onImageClick, onExpand }) {
   const [expanded, setExpanded] = useState(false);
   const hasMore = w.weinbeschreibung || w.speiseempfehlung || w.hintergrundgeschichte || w.regionBeschreibung;
   const teaser = w.weinbeschreibung
@@ -398,6 +427,9 @@ function WineCard({ w, onToggleFavorit, onEdit, onDelete, onImageClick, onExpand
           <button onClick={() => onToggleFavorit(w.id)} style={{ background: "none", border: "none", cursor: "pointer", color: w.favorit ? "#C9A961" : "#D8CDB8" }}>
             <Star size={24} fill={w.favorit ? "#C9A961" : "none"} />
           </button>
+          <button onClick={() => onToggleFavoritBJ(w.id)} title="Favorit BJ" style={{ background: "none", border: "none", cursor: "pointer", color: w.favoritBJ ? "#B0453F" : "#D8CDB8" }}>
+            <Heart size={20} fill={w.favoritBJ ? "#B0453F" : "none"} />
+          </button>
           <button onClick={() => onEdit(w)} style={{ background: "none", border: "none", cursor: "pointer", color: "#7A6F63" }}><Pencil size={15} /></button>
           <button onClick={() => onDelete(w.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#B0453F" }}><Trash2 size={15} /></button>
         </div>
@@ -425,20 +457,42 @@ function WineCard({ w, onToggleFavorit, onEdit, onDelete, onImageClick, onExpand
       </div>
 
       {w.alternativeBezugsquelle && (
-        <div style={{ marginTop: 6, fontSize: 12, color: "#A89C89" }}>🔗 Auch online bei: {w.alternativeBezugsquelle}</div>
+        w.bezugsquelle === "Restaurant" ? (
+          <div style={{ marginTop: 6, fontSize: 12.5, fontWeight: 600, color: "#7A2038", display: "flex", alignItems: "center", gap: 5 }}>
+            🔗 Online erhältlich bei: {w.alternativeBezugsquelle}
+            <a href={buildAltSearchUrl(w)} target="_blank" rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              title={`${w.weinname || "Wein"} erneut suchen`}
+              style={{ display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
+              🔎
+            </a>
+          </div>
+        ) : (
+          <div style={{ marginTop: 6, fontSize: 12, color: "#A89C89", display: "flex", alignItems: "center", gap: 5 }}>
+            🔗 Auch online bei: {w.alternativeBezugsquelle}
+            <a href={buildAltSearchUrl(w)} target="_blank" rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              title={`${w.weinname || "Wein"} erneut suchen`}
+              style={{ display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
+              🔎
+            </a>
+          </div>
+        )
       )}
 
       <div style={{ marginTop: 10 }}>
         <SaeureBar value={w.saeure || 3} typ={w.typ} gl={w.saeureGL} />
       </div>
 
-      {w.typ === "Weiß" && w.cremig && <div style={{ marginTop: 10, fontSize: 12, color: "#7A6F63" }}>Cremig: {w.cremig}</div>}
-      {w.dekantieren === "Ja" && (
-        <div style={{ marginTop: 6, fontSize: 12, color: "#7A6F63" }}>
-          🫗 Dekantieren{w.dekantierzeit !== "" && w.dekantierzeit != null ? `: ${w.dekantierzeit} ${String(w.dekantierzeit) === "1" ? "Stunde" : "Stunden"} vorher` : ""}
+      {((w.typ === "Weiß" && w.cremig) || w.dekantieren === "Ja" || w.wiederkaufen) && (
+        <div style={{ marginTop: 10, fontSize: 12, color: "#7A6F63", display: "flex", flexWrap: "wrap", gap: "4px 12px" }}>
+          {w.typ === "Weiß" && w.cremig && <span>🥛 Cremig: {w.cremig}</span>}
+          {w.dekantieren === "Ja" && (
+            <span>🫗 Dekantieren{w.dekantierzeit !== "" && w.dekantierzeit != null ? `: ${w.dekantierzeit} ${String(w.dekantierzeit) === "1" ? "Stunde" : "Stunden"} vorher` : ""}</span>
+          )}
+          {w.wiederkaufen && <span>🔁 Wieder kaufen: {w.wiederkaufen}</span>}
         </div>
       )}
-      {w.wiederkaufen && <div style={{ marginTop: 6, fontSize: 12, color: "#7A6F63" }}>Wieder kaufen: {w.wiederkaufen}</div>}
 
       {/* Notizen: immer sichtbar, kurz, für private Vermerke */}
       {w.notizen && <div style={{ marginTop: 8, fontSize: 12, fontStyle: "italic", color: "#7A6F63" }}>{w.notizen}</div>}
@@ -485,8 +539,11 @@ function Weinkeller({ onLogout }) {
   const [filterAnzahlFlaschen, setFilterAnzahlFlaschen] = useState("Alle");
   const [filterBezugsquelle, setFilterBezugsquelle] = useState("Alle");
   const [filterFavorit, setFilterFavorit] = useState("Alle");
+  const [filterFavoritBJ, setFilterFavoritBJ] = useState("Alle");
   const [filterWiederkaufen, setFilterWiederkaufen] = useState("Alle");
+  const [filterCremig, setFilterCremig] = useState("Alle");
   const [nurNeuesterJahrgang, setNurNeuesterJahrgang] = useState(false);
+  const [nurUnbewertet, setNurUnbewertet] = useState(false);
   const [suchtext, setSuchtext] = useState("");
   const [error, setError] = useState("");
   const [dirty, setDirty] = useState(false); // seit letztem Excel-Export geändert?
@@ -660,6 +717,12 @@ function Weinkeller({ onLogout }) {
     persistWine({ ...wine, favorit: !wine.favorit });
   }
 
+  function toggleFavoritBJ(id) {
+    const wine = wines.find((w) => w.id === id);
+    if (!wine) return;
+    persistWine({ ...wine, favoritBJ: !wine.favoritBJ });
+  }
+
   const laender = useMemo(() => Array.from(new Set(wines.map((w) => w.land).filter(Boolean))).sort(), [wines]);
   const weingueter = useMemo(() => Array.from(new Set(wines.map((w) => w.weingut).filter(Boolean))).sort(), [wines]);
   const trauben = useMemo(() => Array.from(new Set(wines.map((w) => w.traube).filter(Boolean))).sort(), [wines]);
@@ -701,7 +764,9 @@ function Weinkeller({ onLogout }) {
     if (filterAnzahlFlaschen === "keine") list = list.filter((w) => !(parseFloat(w.anzahlFlaschen) > 0));
     if (filterBezugsquelle !== "Alle") list = list.filter((w) => w.bezugsquelle === filterBezugsquelle);
     if (filterFavorit !== "Alle") list = list.filter((w) => (filterFavorit === "Ja" ? w.favorit : !w.favorit));
+    if (filterFavoritBJ !== "Alle") list = list.filter((w) => (filterFavoritBJ === "Ja" ? w.favoritBJ : !w.favoritBJ));
     if (filterWiederkaufen !== "Alle") list = list.filter((w) => w.wiederkaufen === filterWiederkaufen);
+    if (filterCremig !== "Alle") list = list.filter((w) => w.cremig === filterCremig);
 
     // Ältere Jahrgänge desselben Weins ausblenden (nur Anzeige, nichts wird gelöscht) -
     // hilfreich für die Frage "was kann ich aktuell nachbestellen?", ohne die Historie/Notizen zu verlieren.
@@ -719,6 +784,12 @@ function Weinkeller({ onLogout }) {
       });
     }
 
+    // Weine ohne Bewertung ausblenden lassen - hilfreich, um gezielt zu sehen,
+    // welche gekauften/katalogisierten Weine noch auf eine Verkostung warten.
+    if (nurUnbewertet) {
+      list = list.filter((w) => !w.bewertung);
+    }
+
     list.sort((a, b) => {
       const v1 = sortValue(a, sortBy1);
       const v2 = sortValue(b, sortBy1);
@@ -734,7 +805,7 @@ function Weinkeller({ onLogout }) {
     });
     list.sort((a, b) => (b.favorit ? 1 : 0) - (a.favorit ? 1 : 0));
     return list;
-  }, [wines, suchtext, filterTyp, filterLand, filterWeingut, filterTraube, filterJahrgang, filterAnzahlFlaschen, filterBezugsquelle, filterFavorit, filterWiederkaufen, nurNeuesterJahrgang, sortBy1, sortBy2]);
+  }, [wines, suchtext, filterTyp, filterLand, filterWeingut, filterTraube, filterJahrgang, filterAnzahlFlaschen, filterBezugsquelle, filterFavorit, filterFavoritBJ, filterWiederkaufen, filterCremig, nurNeuesterJahrgang, nurUnbewertet, sortBy1, sortBy2]);
 
   function copyForClaude() {
     const lines = filtered.map((w) => {
@@ -771,7 +842,7 @@ function Weinkeller({ onLogout }) {
       "Säure (1-5)": w.saeure, "Gesamtsäure (g/l)": w.saeureGL, Typ: w.typ, Cremig: w.typ === "Weiß" ? w.cremig : "",
       Bezugsquelle: w.bezugsquelle, "Alternative Bezugsquelle (online)": w.alternativeBezugsquelle, "Preis (€)": w.preis, "Anzahl Flaschen": w.anzahlFlaschen, "Bewertung (1-10)": w.bewertung,
       Weinbeschreibung: w.weinbeschreibung, Speiseempfehlung: w.speiseempfehlung, "Region kurz vorgestellt": w.regionBeschreibung, Hintergrundgeschichte: w.hintergrundgeschichte,
-      "Wieder kaufen": w.wiederkaufen, Notizen: w.notizen, Favorit: w.favorit ? "Ja" : "Nein",
+      "Wieder kaufen": w.wiederkaufen, Notizen: w.notizen, Favorit: w.favorit ? "Ja" : "Nein", "Favorit BJ": w.favoritBJ ? "Ja" : "Nein",
       Dekantieren: w.dekantieren, "Dekantierzeit (Stunden)": w.dekantierzeit, "Restaurant/Ort": w.restaurantName,
       Etikett: w.etikettVorne || "",
     }));
@@ -843,6 +914,7 @@ function Weinkeller({ onLogout }) {
             bewertung: parseInt(r["Bewertung (1-10)"], 10) || 5,
             wiederkaufen: String(r["Wieder kaufen"] || ""), notizen: String(r["Notizen"] || ""),
             favorit: String(r["Favorit"] || "").toLowerCase() === "ja",
+            favoritBJ: String(r["Favorit BJ"] || "").toLowerCase() === "ja",
             dekantieren: String(r["Dekantieren"] || ""), dekantierzeit: String(r["Dekantierzeit (Stunden)"] || ""),
             restaurantName: String(r["Restaurant/Ort"] || ""),
             etikettVorne: String(r["Etikett"] || ""),
@@ -868,7 +940,8 @@ function Weinkeller({ onLogout }) {
 
   return (
     <div style={{ minHeight: "100vh", background: "#F5F0E6", fontFamily: "'Inter', system-ui, sans-serif", color: "#2B2320" }}>
-      <div style={{ maxWidth: 720, margin: "0 auto", padding: "24px 16px 80px" }}>
+      <div style={{ maxWidth: 1400, margin: "0 auto", padding: "24px 16px 80px" }}>
+        <div style={{ maxWidth: 720, margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <WineIcon size={26} color="#7A2038" />
@@ -1016,6 +1089,14 @@ function Weinkeller({ onLogout }) {
             </select>
           </div>
           <div style={{ flex: "1 1 110px" }}>
+            <label>Favorit BJ</label>
+            <select value={filterFavoritBJ} onChange={(e) => setFilterFavoritBJ(e.target.value)}>
+              <option>Alle</option>
+              <option value="Ja">Nur Favoriten BJ</option>
+              <option value="Nein">Keine Favoriten BJ</option>
+            </select>
+          </div>
+          <div style={{ flex: "1 1 110px" }}>
             <label>Wieder kaufen</label>
             <select value={filterWiederkaufen} onChange={(e) => setFilterWiederkaufen(e.target.value)}>
               <option>Alle</option>
@@ -1024,11 +1105,24 @@ function Weinkeller({ onLogout }) {
               <option value="Vielleicht">Vielleicht</option>
             </select>
           </div>
+          <div style={{ flex: "1 1 110px" }}>
+            <label>Cremig</label>
+            <select value={filterCremig} onChange={(e) => setFilterCremig(e.target.value)}>
+              <option>Alle</option>
+              <option value="Ja">Ja</option>
+              <option value="Nein">Nein</option>
+            </select>
+          </div>
         </div>
 
-        <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, cursor: "pointer", textTransform: "none", letterSpacing: 0, fontSize: 13, fontWeight: 500, color: "#2B2320" }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, cursor: "pointer", textTransform: "none", letterSpacing: 0, fontSize: 13, fontWeight: 500, color: "#2B2320" }}>
           <input type="checkbox" checked={nurNeuesterJahrgang} onChange={(e) => setNurNeuesterJahrgang(e.target.checked)} style={{ width: "auto" }} />
           Nur neuesten Jahrgang je Wein anzeigen
+        </label>
+
+        <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, cursor: "pointer", textTransform: "none", letterSpacing: 0, fontSize: 13, fontWeight: 500, color: "#2B2320" }}>
+          <input type="checkbox" checked={nurUnbewertet} onChange={(e) => setNurUnbewertet(e.target.checked)} style={{ width: "auto" }} />
+          Nur unbewertete Weine anzeigen (noch nicht verkostet)
         </label>
 
         <button onClick={openNewForm}
@@ -1046,13 +1140,15 @@ function Weinkeller({ onLogout }) {
             Noch keine Weine erfasst. Foto ans Gespräch schicken, ich liefere den Text für die Schnelleingabe.
           </div>
         )}
+        </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div className="wine-grid">
           {filtered.map((w) => (
             <WineCard
               key={w.id}
               w={w}
               onToggleFavorit={toggleFavorit}
+              onToggleFavoritBJ={toggleFavoritBJ}
               onEdit={openEditForm}
               onDelete={deleteWine}
               onImageClick={setLightbox}
@@ -1105,6 +1201,7 @@ function Weinkeller({ onLogout }) {
                       </span>
                     )}
                     {dw.favorit && <Star size={18} color="#C9A961" fill="#C9A961" />}
+                    {dw.favoritBJ && <Heart size={16} color="#B0453F" fill="#B0453F" />}
                   </div>
                 </div>
               </div>
@@ -1129,7 +1226,27 @@ function Weinkeller({ onLogout }) {
                   )}
                 </div>
               )}
-              {dw.alternativeBezugsquelle && <div style={{ marginTop: 4, fontSize: 14, color: "#A89C89" }}>🔗 Auch online bei: {dw.alternativeBezugsquelle}</div>}
+              {dw.alternativeBezugsquelle && (
+                dw.bezugsquelle === "Restaurant" ? (
+                  <div style={{ marginTop: 6, fontSize: 15, fontWeight: 600, color: "#7A2038", display: "flex", alignItems: "center", gap: 6 }}>
+                    🔗 Online erhältlich bei: {dw.alternativeBezugsquelle}
+                    <a href={buildAltSearchUrl(dw)} target="_blank" rel="noopener noreferrer"
+                      title={`${dw.weinname || "Wein"} erneut suchen`}
+                      style={{ display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
+                      🔎
+                    </a>
+                  </div>
+                ) : (
+                  <div style={{ marginTop: 4, fontSize: 14, color: "#A89C89", display: "flex", alignItems: "center", gap: 6 }}>
+                    🔗 Auch online bei: {dw.alternativeBezugsquelle}
+                    <a href={buildAltSearchUrl(dw)} target="_blank" rel="noopener noreferrer"
+                      title={`${dw.weinname || "Wein"} erneut suchen`}
+                      style={{ display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
+                      🔎
+                    </a>
+                  </div>
+                )
+              )}
 
               <div style={{ marginTop: 18, maxWidth: 280 }}>
                 <SaeureBar value={dw.saeure || 3} typ={dw.typ} gl={dw.saeureGL} />
@@ -1241,7 +1358,7 @@ function Weinkeller({ onLogout }) {
               {form.typ === "Weiß" && (
                 <div>
                   <label>Cremig</label>
-                  <select value={form.cremig} onChange={(e) => setForm({ ...form, cremig: e.target.value })}>
+                  <select value={form.cremig} onChange={(e) => setForm({ ...form, cremig: e.target.value })} style={leerStil(form.cremig)}>
                     <option value=""></option><option>Ja</option><option>Nein</option>
                   </select>
                 </div>
@@ -1351,6 +1468,13 @@ function Weinkeller({ onLogout }) {
                 <button type="button" onClick={() => setForm({ ...form, favorit: !form.favorit })} style={{ display: "flex", alignItems: "center", gap: 6, background: "#FFFDF9", border: "1px solid #DDD2BE", borderRadius: 8, padding: "8px 10px", cursor: "pointer", width: "100%" }}>
                   <Star size={22} color={form.favorit ? "#C9A961" : "#D8CDB8"} fill={form.favorit ? "#C9A961" : "none"} />
                   <span style={{ fontSize: 14 }}>{form.favorit ? "Favorit" : "Kein Favorit"}</span>
+                </button>
+              </div>
+              <div>
+                <label>Favorit BJ</label>
+                <button type="button" onClick={() => setForm({ ...form, favoritBJ: !form.favoritBJ })} style={{ display: "flex", alignItems: "center", gap: 6, background: "#FFFDF9", border: "1px solid #DDD2BE", borderRadius: 8, padding: "8px 10px", cursor: "pointer", width: "100%" }}>
+                  <Heart size={20} color={form.favoritBJ ? "#B0453F" : "#D8CDB8"} fill={form.favoritBJ ? "#B0453F" : "none"} />
+                  <span style={{ fontSize: 14 }}>{form.favoritBJ ? "Favorit BJ" : "Kein Favorit BJ"}</span>
                 </button>
               </div>
             </div>
