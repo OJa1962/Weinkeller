@@ -256,6 +256,12 @@ function parseQuickText(text) {
       out[key] = /ja/i.test(rawVal) ? "Ja" : /nein/i.test(rawVal) ? "Nein" : "";
     } else if (key === "dekantieren") {
       out[key] = /ja/i.test(rawVal) ? "Ja" : /nein/i.test(rawVal) ? "Nein" : "";
+      // Manchmal steht die Stundenzahl direkt in derselben Zeile (z.B. "Ja (1 Std. vorher)")
+      // statt in einer eigenen "Dekantierzeit"-Zeile - dann hilfsweise hier mit herausziehen.
+      if (out[key] === "Ja" && !out.dekantierzeit) {
+        const m2 = rawVal.match(/([\d.,]+)\s*(std|stunde)/i);
+        if (m2) out.dekantierzeit = m2[1];
+      }
     } else if (key === "dekantierzeit") {
       // Nur die führende Zahl nehmen und ein mitgeliefertes "Stunde(n)" entfernen
       // (z.B. "2 Stunden vorher" -> "2"), da die Anzeige die Einheit selbst anhängt.
