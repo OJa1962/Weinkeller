@@ -222,7 +222,7 @@ const EMPTY_FORM = {
   alternativeBezugsquelle: "",
   bewertung: "", wiederkaufen: "", notizen: "", etikettVorne: "",
   favorit: false, favoritBJ: false, preis: "", anzahlFlaschen: "", weinbeschreibung: "", speiseempfehlung: "", hintergrundgeschichte: "", regionBeschreibung: "",
-  dekantieren: "", dekantierzeit: "", restaurantName: "",
+  dekantieren: "", dekantierzeit: "", restaurantName: "", nurVorOrtErhaeltlich: "",
 };
 
 const FIELD_MAP = {
@@ -244,6 +244,7 @@ const FIELD_MAP = {
   dekantieren: "dekantieren", "dekantieren?": "dekantieren",
   dekantierzeit: "dekantierzeit", "dekantierzeit (stunden)": "dekantierzeit", "dekantieren stunden": "dekantierzeit", "stunden dekantieren": "dekantierzeit",
   "restaurant": "restaurantName", "restaurant / ort": "restaurantName", "restaurant/ort": "restaurantName", ort: "restaurantName", restaurantname: "restaurantName",
+  "nur vor ort erhältlich": "nurVorOrtErhaeltlich", "nur vor ort": "nurVorOrtErhaeltlich", nurvororterhaeltlich: "nurVorOrtErhaeltlich",
 };
 
 // Normalisiert einen Weingut-Namen für Vergleiche: entfernt Klammerzusätze (z.B. Rechtsform-Erklärungen)
@@ -275,6 +276,8 @@ function parseQuickText(text) {
       const n = m ? parseInt(m[1], 10) : NaN;
       if (!isNaN(n)) out[key] = n;
     } else if (key === "cremig") {
+      out[key] = /ja/i.test(rawVal) ? "Ja" : /nein/i.test(rawVal) ? "Nein" : "";
+    } else if (key === "nurVorOrtErhaeltlich") {
       out[key] = /ja/i.test(rawVal) ? "Ja" : /nein/i.test(rawVal) ? "Nein" : "";
     } else if (key === "dekantieren") {
       out[key] = /ja/i.test(rawVal) ? "Ja" : /nein/i.test(rawVal) ? "Nein" : "";
@@ -484,6 +487,12 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onEdit, onDelete, onI
         {w.anzahlFlaschen && <span>🍾 {w.anzahlFlaschen} {String(w.anzahlFlaschen) === "1" ? "Flasche" : "Flaschen"}</span>}
       </div>
 
+      {w.bezugsquelle === "Restaurant/Weinbar" && w.nurVorOrtErhaeltlich === "Ja" && (
+        <div style={{ marginTop: 6, fontSize: 12.5, fontWeight: 600, color: "#B0453F" }}>
+          🚫 Nur vor Ort erhältlich – nicht online bestellbar
+        </div>
+      )}
+
       {w.alternativeBezugsquelle && (
         w.bezugsquelle === "Restaurant/Weinbar" ? (
           <div style={{ marginTop: 6, fontSize: 12.5, fontWeight: 600, color: "#7A2038", display: "flex", alignItems: "center", gap: 5 }}>
@@ -518,7 +527,7 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onEdit, onDelete, onI
           {w.dekantieren === "Ja" && (
             <span>🫗 Dekantieren{w.dekantierzeit !== "" && w.dekantierzeit != null ? `: ${w.dekantierzeit} ${String(w.dekantierzeit) === "1" ? "Stunde" : "Stunden"} vorher` : ""}</span>
           )}
-          {w.wiederkaufen && <span>🔁 Wieder kaufen: {w.wiederkaufen}</span>}
+          {w.wiederkaufen && <span>🔁 Wiederkaufen/-trinken: {w.wiederkaufen}</span>}
         </div>
       )}
 
@@ -570,6 +579,7 @@ function Weinkeller({ onLogout }) {
   const [filterFavoritBJ, setFilterFavoritBJ] = useState("Alle");
   const [filterWiederkaufen, setFilterWiederkaufen] = useState("Alle");
   const [filterCremig, setFilterCremig] = useState("Alle");
+  const [filterNurVorOrt, setFilterNurVorOrt] = useState("Alle");
   const [nurNeuesterJahrgang, setNurNeuesterJahrgang] = useState(false);
   const [nurUnbewertet, setNurUnbewertet] = useState(false);
   const [suchtext, setSuchtext] = useState("");
@@ -788,6 +798,7 @@ function Weinkeller({ onLogout }) {
     if (filterFavoritBJ !== "Alle") list = list.filter((w) => (filterFavoritBJ === "Ja" ? w.favoritBJ : !w.favoritBJ));
     if (filterWiederkaufen !== "Alle") list = list.filter((w) => w.wiederkaufen === filterWiederkaufen);
     if (filterCremig !== "Alle") list = list.filter((w) => w.cremig === filterCremig);
+    if (filterNurVorOrt !== "Alle") list = list.filter((w) => w.nurVorOrtErhaeltlich === filterNurVorOrt);
 
     // Ältere Jahrgänge desselben Weins ausblenden (nur Anzeige, nichts wird gelöscht) -
     // hilfreich für die Frage "was kann ich aktuell nachbestellen?", ohne die Historie/Notizen zu verlieren.
@@ -826,7 +837,7 @@ function Weinkeller({ onLogout }) {
     });
     list.sort((a, b) => (b.favorit ? 1 : 0) - (a.favorit ? 1 : 0));
     return list;
-  }, [wines, suchtext, filterTyp, filterLand, filterWeingut, filterTraube, filterJahrgang, filterAnzahlFlaschen, filterBezugsquelle, filterFavorit, filterFavoritBJ, filterWiederkaufen, filterCremig, nurNeuesterJahrgang, nurUnbewertet, sortBy1, sortBy2]);
+  }, [wines, suchtext, filterTyp, filterLand, filterWeingut, filterTraube, filterJahrgang, filterAnzahlFlaschen, filterBezugsquelle, filterFavorit, filterFavoritBJ, filterWiederkaufen, filterCremig, filterNurVorOrt, nurNeuesterJahrgang, nurUnbewertet, sortBy1, sortBy2]);
 
   function copyForClaude() {
     const lines = filtered.map((w) => {
@@ -864,7 +875,7 @@ function Weinkeller({ onLogout }) {
       Bezugsquelle: w.bezugsquelle, "Alternative Bezugsquelle (online)": w.alternativeBezugsquelle, "Preis (€)": w.preis, "Anzahl Flaschen": w.anzahlFlaschen, "Bewertung (1-10)": w.bewertung,
       Weinbeschreibung: w.weinbeschreibung, Speiseempfehlung: w.speiseempfehlung, "Region kurz vorgestellt": w.regionBeschreibung, Hintergrundgeschichte: w.hintergrundgeschichte,
       "Wieder kaufen": w.wiederkaufen, Notizen: w.notizen, Favorit: w.favorit ? "Ja" : "Nein", "Favorit BJ": w.favoritBJ ? "Ja" : "Nein",
-      Dekantieren: w.dekantieren, "Dekantierzeit (Stunden)": w.dekantierzeit, "Restaurant/Ort": w.restaurantName,
+      Dekantieren: w.dekantieren, "Dekantierzeit (Stunden)": w.dekantierzeit, "Restaurant/Ort": w.restaurantName, "Nur vor Ort erhältlich": w.nurVorOrtErhaeltlich,
       Etikett: w.etikettVorne || "",
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
@@ -938,6 +949,7 @@ function Weinkeller({ onLogout }) {
             favoritBJ: String(r["Favorit BJ"] || "").toLowerCase() === "ja",
             dekantieren: String(r["Dekantieren"] || ""), dekantierzeit: String(r["Dekantierzeit (Stunden)"] || ""),
             restaurantName: String(r["Restaurant/Ort"] || ""),
+            nurVorOrtErhaeltlich: String(r["Nur vor Ort erhältlich"] || ""),
             etikettVorne: String(r["Etikett"] || ""),
           };
           const existing = existingByKey[wineKey(parsed)];
@@ -1118,7 +1130,7 @@ function Weinkeller({ onLogout }) {
             </select>
           </div>
           <div style={{ flex: "1 1 110px" }}>
-            <label>Wieder kaufen</label>
+            <label>Wiederkaufen / Wiedertrinken</label>
             <select value={filterWiederkaufen} onChange={(e) => setFilterWiederkaufen(e.target.value)}>
               <option>Alle</option>
               <option value="Ja">Ja</option>
@@ -1129,6 +1141,14 @@ function Weinkeller({ onLogout }) {
           <div style={{ flex: "1 1 110px" }}>
             <label>Cremig</label>
             <select value={filterCremig} onChange={(e) => setFilterCremig(e.target.value)}>
+              <option>Alle</option>
+              <option value="Ja">Ja</option>
+              <option value="Nein">Nein</option>
+            </select>
+          </div>
+          <div style={{ flex: "1 1 110px" }}>
+            <label>Nur vor Ort erhältlich</label>
+            <select value={filterNurVorOrt} onChange={(e) => setFilterNurVorOrt(e.target.value)}>
               <option>Alle</option>
               <option value="Ja">Ja</option>
               <option value="Nein">Nein</option>
@@ -1247,6 +1267,11 @@ function Weinkeller({ onLogout }) {
                   )}
                 </div>
               )}
+              {dw.bezugsquelle === "Restaurant/Weinbar" && dw.nurVorOrtErhaeltlich === "Ja" && (
+                <div style={{ marginTop: 6, fontSize: 15, fontWeight: 600, color: "#B0453F" }}>
+                  🚫 Nur vor Ort erhältlich – nicht online bestellbar
+                </div>
+              )}
               {dw.alternativeBezugsquelle && (
                 dw.bezugsquelle === "Restaurant/Weinbar" ? (
                   <div style={{ marginTop: 6, fontSize: 15, fontWeight: 600, color: "#7A2038", display: "flex", alignItems: "center", gap: 6 }}>
@@ -1279,7 +1304,7 @@ function Weinkeller({ onLogout }) {
                   🫗 Dekantieren{dw.dekantierzeit !== "" && dw.dekantierzeit != null ? `: ${dw.dekantierzeit} ${String(dw.dekantierzeit) === "1" ? "Stunde" : "Stunden"} vorher` : ""}
                 </div>
               )}
-              {dw.wiederkaufen && <div style={{ marginTop: 6, fontSize: 14, color: "#7A6F63" }}>Wieder kaufen: {dw.wiederkaufen}</div>}
+              {dw.wiederkaufen && <div style={{ marginTop: 6, fontSize: 14, color: "#7A6F63" }}>Wiederkaufen/-trinken: {dw.wiederkaufen}</div>}
 
               {dw.notizen && (
                 <div style={{ marginTop: 16, fontSize: 15, fontStyle: "italic", color: "#4A4038", lineHeight: 1.5 }}>{dw.notizen}</div>
@@ -1425,6 +1450,14 @@ function Weinkeller({ onLogout }) {
                   </datalist>
                 </div>
               )}
+              {form.bezugsquelle === "Restaurant/Weinbar" && (
+                <div>
+                  <label>Nur vor Ort erhältlich (nicht online bestellbar)</label>
+                  <select value={form.nurVorOrtErhaeltlich} onChange={(e) => setForm({ ...form, nurVorOrtErhaeltlich: e.target.value })}>
+                    <option value=""></option><option>Ja</option><option>Nein</option>
+                  </select>
+                </div>
+              )}
               <div>
                 <label>Alternative Bezugsquelle (online)</label>
                 <input placeholder="z. B. Tesdorpf – 43,90 €" value={form.alternativeBezugsquelle} onChange={(e) => setForm({ ...form, alternativeBezugsquelle: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.alternativeBezugsquelle)} />
@@ -1446,7 +1479,7 @@ function Weinkeller({ onLogout }) {
                 </select>
               </div>
               <div>
-                <label>Wieder kaufen</label>
+                <label>Wiederkaufen / Wiedertrinken</label>
                 <select value={form.wiederkaufen} onChange={(e) => setForm({ ...form, wiederkaufen: e.target.value })} style={leerStil(form.wiederkaufen)}>
                   <option value=""></option><option>Ja</option><option>Nein</option><option>Vielleicht</option>
                 </select>
