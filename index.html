@@ -421,9 +421,7 @@ function AngebotLink({ url, fontSize = 12.5, w }) {
   // Die Lupe sucht denselben Wein beim selben Händler OHNE Jahrgang - so findet man den
   // Nachfolgejahrgang, auch wenn der gespeicherte Link nicht mehr funktioniert.
   const query = w ? `${w.weingut || ""} ${w.weinname || ""}`.trim() : "";
-  const suche = query && host !== "Angebot"
-    ? googleSuche(`site:${host} ${query}`)
-    : null;
+  const suche = query && host !== "Angebot" ? haendlerSuche(host, w) : null;
   return (
     <span style={{ display: "inline-flex", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
       <a href={href} target="_blank" rel="noopener noreferrer"
@@ -526,7 +524,7 @@ const ONLINE_BEZUGSQUELLEN = {
   "Webshop Weingut": null, // Domain je Weingut unterschiedlich -> allgemeine Google-Suche
   "Wein am Limit": "weinamlimit.de",
   "Wein am Limit Abo": "weinamlimit.de",
-  "Lobenberg": "lobenberg.de",
+  "Lobenberg": "gute-weine.de", // Lobenbergs Shop läuft unter gute-weine.de
   "Tesdorpf": "tesdorpf.de",
   "Sake Kontor": "sake-kontor.de",
   "Restaurant/Weinbar": null, // Bei Restaurant-Weinen ist die Suche besonders sinnvoll, da man noch keine Bezugsquelle kennt
@@ -543,12 +541,43 @@ function deutscheHaendlerSuche(query) {
   return googleSuche(`${query} kaufen site:.de`);
 }
 
+// Shops, deren eigene Suche direkt aufgerufen werden kann. Google kennt viele
+// Produktseiten dieser Shops nicht (z.B. Wein am Limit), daher findet eine
+// "site:"-Suche dort oft nichts, obwohl der Wein im Shop steht.
+// nurName: nur den Weinnamen suchen (bei Wein am Limit liefert Weingut + Name oft nichts).
+const SHOP_SUCHE = {
+  "weinamlimit.de": { url: (q) => `https://shop.weinamlimit.de/search?search=${encodeURIComponent(q)}`, nurName: true },
+  "gute-weine.de": { url: (q) => `https://www.gute-weine.de/suche/?tx_solr%5Bq%5D=${encodeURIComponent(q)}` }, // Lobenberg
+  "lobenberg.de": { url: (q) => `https://www.gute-weine.de/suche/?tx_solr%5Bq%5D=${encodeURIComponent(q)}` },
+  "tesdorpf.de": { url: (q) => `https://www.tesdorpf.de/search/?q=${encodeURIComponent(q)}` },
+  "sake-kontor.de": { url: (q) => `https://www.sake-kontor.de/?s=${encodeURIComponent(q)}&post_type=product` },
+};
+
+// Sucht den Wein bei einem bestimmten Händler - über dessen eigene Shopsuche, wenn
+// bekannt (nur mit dem Weinnamen, ohne Jahrgang), sonst per Google mit "site:".
+function haendlerSuche(domain, w) {
+  const query = `${w.weingut || ""} ${w.weinname || ""}`.trim();
+  const key = Object.keys(SHOP_SUCHE).find((d) => domain.endsWith(d));
+  // Satzzeichen wie " - " stören die Shopsuche (Wein am Limit findet dann nichts),
+  // daher nur Buchstaben, Ziffern und Leerzeichen übergeben.
+  if (key) {
+    const shop = SHOP_SUCHE[key];
+    // Gattungswörter wie "Weingut" oder "Domaine" weglassen - die Shops schreiben
+    // den Erzeuger oft ohne sie, und eine strenge Shopsuche fände dann nichts.
+    const erzeuger = (w.weingut || "").replace(/\b(weingut|weinbau|domaine|château|chateau|bodega|bodegas|tenuta|azienda agricola|quinta|cantina|clos)\b/gi, " ");
+    const begriff = (shop.nurName ? (w.weinname || query) : `${erzeuger} ${w.weinname || ""}`)
+      .replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim();
+    return shop.url(begriff);
+  }
+  return googleSuche(`site:${domain} ${query}`);
+}
+
 function buildShopSearchUrl(w) {
   const query = `${w.weingut || ""} ${w.weinname || ""}`.trim();
   if (!query) return null;
   const domain = ONLINE_BEZUGSQUELLEN[w.bezugsquelle];
   if (domain) {
-    return googleSuche(`site:${domain} ${query}`);
+    return haendlerSuche(domain, w);
   }
   // Beim Webshop des Weinguts NICHT auf .de einschränken - der kann auch eine
   // .fr-, .it- oder .at-Adresse haben.
@@ -563,20 +592,22 @@ function buildAltSearchUrl(w) {
   const query = `${w.weingut || ""} ${w.weinname || ""}`.trim();
   if (!query) return null;
   const text = (w.alternativeBezugsquelle || "").toLowerCase();
-  // Verneinungen wie "nicht gelistet" oder "kein Webshop" bedeuten: der Händler wurde
-  // GEPRÜFT, aber NICHT gefunden - dann darf die Suche nicht auf genau diese Seite
-  // eingeschränkt werden, sondern muss offen im gesamten Web suchen (z.B. bei einem
-  // bisher unbekannten Händler, den man für einen besonders guten Wein in Kauf nimmt).
-  const verneint = /nicht|kein/.test(text);
-  let domain = null;
-  if (!verneint) {
-    if (text.includes("tesdorpf")) domain = "tesdorpf.de";
-    else if (text.includes("lobenberg")) domain = "lobenberg.de";
-    else if (text.includes("wein am limit") || text.includes("weinamlimit")) domain = "weinamlimit.de";
-    else if (text.includes("sake kontor") || text.includes("sake-kontor")) domain = "sake-kontor.de";
-  }
-  if (domain) {
-    return googleSuche(`site:${domain} ${query}`);
+  // Der Text kann mehrere Händler nennen, z.B. "Wein am Limit – Jahrgang 2019, 59,00 €;
+  // Tesdorpf: nicht gelistet". Verneinungen ("nicht gelistet", "kein Webshop") gelten
+  // deshalb nur für den Abschnitt, in dem sie stehen. Gesucht wird beim ersten Händler,
+  // der OHNE Verneinung genannt ist; sonst offen bei deutschen Händlern.
+  const HAENDLER = [
+    { namen: ["wein am limit", "weinamlimit"], domain: "weinamlimit.de" },
+    { namen: ["tesdorpf"], domain: "tesdorpf.de" },
+    { namen: ["lobenberg", "gute-weine", "gute weine"], domain: "gute-weine.de" },
+    { namen: ["sake kontor", "sake-kontor"], domain: "sake-kontor.de" },
+  ];
+  const abschnitte = text.split(/[;|\n]|\s\/\s/);
+  for (const h of HAENDLER) {
+    const positiv = abschnitte.some((a) =>
+      h.namen.some((n) => a.includes(n)) && !/nicht gelistet|nicht gefunden|nicht erhältlich|nicht verfügbar|kein webshop|nicht im (sortiment|shop)/.test(a)
+    );
+    if (positiv) return haendlerSuche(h.domain, w);
   }
   return deutscheHaendlerSuche(query);
 }
