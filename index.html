@@ -422,7 +422,7 @@ function AngebotLink({ url, fontSize = 12.5, w }) {
   // Nachfolgejahrgang, auch wenn der gespeicherte Link nicht mehr funktioniert.
   const query = w ? `${w.weingut || ""} ${w.weinname || ""}`.trim() : "";
   const suche = query && host !== "Angebot"
-    ? `https://www.google.com/search?q=${encodeURIComponent(`site:${host} ${query}`)}`
+    ? googleSuche(`site:${host} ${query}`)
     : null;
   return (
     <span style={{ display: "inline-flex", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
@@ -532,14 +532,28 @@ const ONLINE_BEZUGSQUELLEN = {
   "Restaurant/Weinbar": null, // Bei Restaurant-Weinen ist die Suche besonders sinnvoll, da man noch keine Bezugsquelle kennt
 };
 
+// Google-Suche mit deutschen Ergebnissen (Sprache + Land Deutschland).
+function googleSuche(q) {
+  return `https://www.google.com/search?q=${encodeURIComponent(q)}&hl=de&gl=de`;
+}
+
+// Offene Händlersuche, eingeschränkt auf deutsche Shops (.de-Domains) -
+// Auslandsshops kommen für Bestellungen nicht infrage.
+function deutscheHaendlerSuche(query) {
+  return googleSuche(`${query} kaufen site:.de`);
+}
+
 function buildShopSearchUrl(w) {
   const query = `${w.weingut || ""} ${w.weinname || ""}`.trim();
   if (!query) return null;
   const domain = ONLINE_BEZUGSQUELLEN[w.bezugsquelle];
   if (domain) {
-    return `https://www.google.com/search?q=${encodeURIComponent(`site:${domain} ${query}`)}`;
+    return googleSuche(`site:${domain} ${query}`);
   }
-  return `https://www.google.com/search?q=${encodeURIComponent(`${query} kaufen`)}`;
+  // Beim Webshop des Weinguts NICHT auf .de einschränken - der kann auch eine
+  // .fr-, .it- oder .at-Adresse haben.
+  if (w.bezugsquelle === "Webshop Weingut") return googleSuche(`${query} Weingut Webshop`);
+  return deutscheHaendlerSuche(query);
 }
 
 // Für "Alternative Bezugsquelle (online)" (Freitext) - erkennt anhand des Textes, welcher
@@ -562,9 +576,9 @@ function buildAltSearchUrl(w) {
     else if (text.includes("sake kontor") || text.includes("sake-kontor")) domain = "sake-kontor.de";
   }
   if (domain) {
-    return `https://www.google.com/search?q=${encodeURIComponent(`site:${domain} ${query}`)}`;
+    return googleSuche(`site:${domain} ${query}`);
   }
-  return `https://www.google.com/search?q=${encodeURIComponent(`${query} kaufen`)}`;
+  return deutscheHaendlerSuche(query);
 }
 
 function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onEdit, onDelete, onImageClick, onExpand }) {
