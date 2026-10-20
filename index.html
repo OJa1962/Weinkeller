@@ -678,7 +678,7 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
       )}
 
       <div style={{ marginTop: 10 }}>
-        <SaeureBar value={w.saeure || 3} typ={w.typ} gl={w.saeureGL} />
+        {w.saeure && w.typ !== "Süßwein" && <SaeureBar value={w.saeure} typ={w.typ} gl={w.saeureGL} />}
       </div>
 
       {((w.typ === "Weiß" && w.cremig) || w.dekantieren === "Ja" || w.wiederkaufen) && (
@@ -823,6 +823,11 @@ function Weinkeller({ onLogout }) {
   // noch leer ist - Erinnerung an das, was noch manuell ausgefüllt werden muss.
   // Kräftige, klar sichtbare Füllfarbe statt nur dezenter Rahmenänderung, da ein
   // zu heller Ton in der ohnehin cremefarbenen Optik der App kaum auffällt.
+  // Felder, die erst nach dem Trinken gefüllt werden: bei Merkliste-Weinen nicht gelb markieren
+  function leerStilNutzer(val) {
+    return form.merkliste === "Ja" ? {} : leerStil(val);
+  }
+
   function leerStil(val) {
     const isEmpty = val === "" || val === null || val === undefined;
     return quickApplied && isEmpty
@@ -1155,7 +1160,7 @@ function Weinkeller({ onLogout }) {
             weingut: String(r["Weingut"] || ""), weinname: String(r["Weinname"] || ""),
             land: String(r["Land"] || ""), region: String(r["Region"] || ""),
             jahrgang: parseInt(r["Jahrgang"], 10) || "", traube: String(r["Rebsorte"] || ""),
-            alkohol: String(r["Alkohol (%)"] || ""), saeure: parseInt(r["Säure (1-5)"], 10) || 3,
+            alkohol: String(r["Alkohol (%)"] || ""), saeure: parseInt(r["Säure (1-5)"], 10) || "",
             saeureGL: String(r["Gesamtsäure (g/l)"] || ""),
             typ: String(r["Typ"] || ""), cremig: String(r["Cremig"] || ""),
             bezugsquelle: String(r["Bezugsquelle"] || ""), alternativeBezugsquelle: String(r["Alternative Bezugsquelle (online)"] || ""), link: String(r["Link (Händler)"] || ""), merkliste: String(r["Merkliste"] || ""), kritiker: String(r["Kritiker"] || ""), weitereJahrgaenge: String(r["Weitere Jahrgänge (online)"] || ""), sakeReis: String(r["Sake Reis"] || ""), sakePraefektur: String(r["Sake Präfektur"] || ""), sakeKlasse: String(r["Sake Klasse"] || ""), sakePoliergrad: String(r["Sake Poliergrad (%)"] || ""), sakeSMV: String(r["Sake SMV"] || ""), sakeTrinktemp: String(r["Sake Trinktemperatur"] || ""), haendlerJahrgang: String(r["Händler-Jahrgang"] || ""), nachkaufPreis: String(r["Nachkauf-Preis (€)"] || ""), nachkaufLink: String(r["Nachkauf-Link"] || ""), ausverkauft: String(r["Nachkauf ausverkauft"] || ""), preis: String(r["Preis (€)"] || ""),
@@ -1163,7 +1168,7 @@ function Weinkeller({ onLogout }) {
             hintergrundgeschichte: String(r["Hintergrundgeschichte"] || ""),
             regionBeschreibung: String(r["Region kurz vorgestellt"] || ""),
             anzahlFlaschen: String(r["Anzahl Flaschen"] || ""),
-            bewertung: parseInt(r["Bewertung (1-10)"], 10) || 5,
+            bewertung: parseInt(r["Bewertung (1-10)"], 10) || "",
             wiederkaufen: String(r["Wieder kaufen"] || ""), notizen: String(r["Notizen"] || ""),
             favorit: String(r["Favorit"] || "").toLowerCase() === "ja",
             favoritBJ: String(r["Favorit BJ"] || "").toLowerCase() === "ja",
@@ -1567,7 +1572,7 @@ function Weinkeller({ onLogout }) {
               )}
 
               <div style={{ marginTop: 18, maxWidth: 280 }}>
-                <SaeureBar value={dw.saeure || 3} typ={dw.typ} gl={dw.saeureGL} />
+                {dw.saeure && dw.typ !== "Süßwein" && <SaeureBar value={dw.saeure} typ={dw.typ} gl={dw.saeureGL} />}
               </div>
 
               {dw.typ === "Weiß" && dw.cremig && <div style={{ marginTop: 14, fontSize: 14, color: "#7A6F63" }}>Cremig: {dw.cremig}</div>}
@@ -1679,18 +1684,18 @@ function Weinkeller({ onLogout }) {
                   <option>Rot</option><option>Weiß</option><option>Rosé</option><option>Schaumwein</option><option>Champagner</option><option>PET NAT</option><option>Süßwein</option><option>Sake</option>
                 </select>
               </div>
-              <div>
+              {form.typ !== "Süßwein" && (<div>
                 <label>Säure (1–5)</label>
                 <select value={form.saeure} onChange={(e) => setForm({ ...form, saeure: e.target.value ? parseInt(e.target.value, 10) : "" })} style={leerStil(form.saeure)}>
                   <option value=""></option>
                   {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n} – {SAEURE_LABELS[n - 1]}</option>)}
                 </select>
-                <div style={{ marginTop: 8 }}><SaeureBar value={form.saeure || 3} typ={form.typ} gl={form.saeureGL} /></div>
-              </div>
-              <div>
+                {form.saeure && <div style={{ marginTop: 8 }}><SaeureBar value={form.saeure} typ={form.typ} gl={form.saeureGL} /></div>}
+              </div>)}
+              {form.typ !== "Süßwein" && (<div>
                 <label>Gesamtsäure (g/l), optional</label>
                 <UnitInput unit="g/l" placeholder="z. B. 6,16" value={form.saeureGL} onChange={(e) => setForm({ ...form, saeureGL: e.target.value, saeure: form.typ === "Sake" ? sakeSaeure(e.target.value) : form.saeure })} onFocus={alleMarkieren} />
-              </div>
+              </div>)}
               {form.typ === "Weiß" && (
                 <div>
                   <label>Cremig</label>
@@ -1717,7 +1722,7 @@ function Weinkeller({ onLogout }) {
                 </div>
               )}
               <div><label>Bezugsquelle</label>
-                <select value={form.bezugsquelle} onChange={(e) => setForm({ ...form, bezugsquelle: e.target.value })} style={leerStil(form.bezugsquelle)}>
+                <select value={form.bezugsquelle} onChange={(e) => setForm({ ...form, bezugsquelle: e.target.value })} style={leerStilNutzer(form.bezugsquelle)}>
                   <option value=""></option>
                   <option value="Webshop Weingut">Webshop Weingut</option>
                   <option value="Ab Hof (Weingut)">Ab Hof (Weingut)</option>
@@ -1735,7 +1740,7 @@ function Weinkeller({ onLogout }) {
               {form.bezugsquelle === "Restaurant/Weinbar" && (
                 <div>
                   <label>Restaurant / Ort</label>
-                  <input list="restaurant-liste" placeholder="z. B. Chef's Table, Rote Wand" value={form.restaurantName} onChange={(e) => setForm({ ...form, restaurantName: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.restaurantName)} />
+                  <input list="restaurant-liste" placeholder="z. B. Chef's Table, Rote Wand" value={form.restaurantName} onChange={(e) => setForm({ ...form, restaurantName: e.target.value })} onFocus={alleMarkieren} style={leerStilNutzer(form.restaurantName)} />
                   <datalist id="restaurant-liste">
                     {restaurants.map((r) => <option key={r} value={r} />)}
                   </datalist>
@@ -1774,7 +1779,7 @@ function Weinkeller({ onLogout }) {
               </div>
               <div><label>Preis (€)</label><UnitInput unit="€" placeholder="z. B. 24,30 oder ca. 25" value={form.preis} onChange={(e) => setForm({ ...form, preis: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.preis)} /></div>
               <div><label>Anzahl Flaschen</label>
-                <select value={form.anzahlFlaschen} onChange={(e) => setForm({ ...form, anzahlFlaschen: e.target.value })} style={leerStil(form.anzahlFlaschen)}>
+                <select value={form.anzahlFlaschen} onChange={(e) => setForm({ ...form, anzahlFlaschen: e.target.value })} style={leerStilNutzer(form.anzahlFlaschen)}>
                   <option value=""></option>
                   {Array.from({ length: 11 }, (_, n) => n).map((n) => (
                     <option key={n} value={n}>{n} {n === 1 ? "Flasche" : "Flaschen"}</option>
@@ -1783,14 +1788,14 @@ function Weinkeller({ onLogout }) {
               </div>
               <div>
                 <label>Bewertung (1–10)</label>
-                <select value={form.bewertung} onChange={(e) => setForm({ ...form, bewertung: e.target.value ? parseInt(e.target.value, 10) : "" })} style={leerStil(form.bewertung)}>
+                <select value={form.bewertung} onChange={(e) => setForm({ ...form, bewertung: e.target.value ? parseInt(e.target.value, 10) : "" })} style={leerStilNutzer(form.bewertung)}>
                   <option value=""></option>
                   {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => <option key={n} value={n}>{n}</option>)}
                 </select>
               </div>
               <div>
                 <label>Wiederkaufen / Wiedertrinken</label>
-                <select value={form.wiederkaufen} onChange={(e) => setForm({ ...form, wiederkaufen: e.target.value })} style={leerStil(form.wiederkaufen)}>
+                <select value={form.wiederkaufen} onChange={(e) => setForm({ ...form, wiederkaufen: e.target.value })} style={leerStilNutzer(form.wiederkaufen)}>
                   <option value=""></option><option>Ja</option><option>Nein</option><option>Vielleicht</option>
                 </select>
               </div>
