@@ -641,6 +641,10 @@ function Weinkeller({ onLogout }) {
   const [detailWine, setDetailWine] = useState(null);
   const [copyFlash, setCopyFlash] = useState(false);
   const [copyFlashSlim, setCopyFlashSlim] = useState(false);
+  const [filterOffen, setFilterOffen] = useState(false);
+  const [cloudHinweisAus, setCloudHinweisAus] = useState(() => {
+    try { return localStorage.getItem("cloudHinweisAus") === "1"; } catch (e) { return false; }
+  });
 
   // Sortierauswahl im Browser merken, damit die App beim nächsten Öffnen nicht auf die
   // Standard-Sortierung zurückspringt, sondern die zuletzt gewählte Reihenfolge behält.
@@ -889,6 +893,31 @@ function Weinkeller({ onLogout }) {
     return list;
   }, [wines, suchtext, filterTyp, filterLand, filterWeingut, filterTraube, filterJahrgang, filterAnzahlFlaschen, filterBezugsquelle, filterFavorit, filterFavoritBJ, filterWiederkaufen, filterCremig, filterNurVorOrt, nurNeuesterJahrgang, nurUnbewertet, sortBy1, sortBy2]);
 
+  // Aktive Filter als Chips (ohne Sortierung und Suchtext)
+  const aktiveChips = [
+    filterTyp !== "Alle" && `Typ: ${filterTyp}`,
+    filterLand !== "Alle" && `Land: ${filterLand}`,
+    filterWeingut !== "Alle" && `Weingut: ${filterWeingut}`,
+    filterTraube !== "Alle" && `Rebsorte: ${filterTraube}`,
+    filterJahrgang !== "Alle" && `Jahrgang: ${filterJahrgang}`,
+    filterAnzahlFlaschen !== "Alle" && `Flaschen: ${filterAnzahlFlaschen === "vorhanden" ? "vorhanden" : "keine mehr"}`,
+    filterBezugsquelle !== "Alle" && `Bezug: ${filterBezugsquelle}`,
+    filterFavorit !== "Alle" && `Favorit: ${filterFavorit === "Ja" ? "ja" : "nein"}`,
+    filterFavoritBJ !== "Alle" && `Favorit BJ: ${filterFavoritBJ === "Ja" ? "ja" : "nein"}`,
+    filterWiederkaufen !== "Alle" && `Wiederkaufen: ${filterWiederkaufen}`,
+    filterCremig !== "Alle" && `Cremig: ${filterCremig}`,
+    filterNurVorOrt !== "Alle" && `Nur vor Ort: ${filterNurVorOrt}`,
+  ].filter(Boolean);
+  const aktiveAnzahl = aktiveChips.length + (nurNeuesterJahrgang ? 1 : 0) + (nurUnbewertet ? 1 : 0);
+
+  function filterZuruecksetzen() {
+    setFilterTyp("Alle"); setFilterLand("Alle"); setFilterWeingut("Alle"); setFilterTraube("Alle");
+    setFilterJahrgang("Alle"); setFilterAnzahlFlaschen("Alle"); setFilterBezugsquelle("Alle");
+    setFilterFavorit("Alle"); setFilterFavoritBJ("Alle"); setFilterWiederkaufen("Alle");
+    setFilterCremig("Alle"); setFilterNurVorOrt("Alle");
+    setNurNeuesterJahrgang(false); setNurUnbewertet(false);
+  }
+
   function copyForClaude() {
     const lines = filtered.map((w) => {
       const kurzbeschreibung = w.weinbeschreibung
@@ -1062,6 +1091,10 @@ function Weinkeller({ onLogout }) {
               style={{ display: "flex", alignItems: "center", gap: 6, background: dirty ? "#7A2038" : "#FFFDF9", color: dirty ? "#FFFDF9" : "#2B2320", border: "1px solid " + (dirty ? "#7A2038" : "#DDD2BE"), borderRadius: 8, padding: "8px 12px", fontSize: 13, cursor: "pointer" }}>
               <Download size={15} /> Sichern
             </button>
+            <button onClick={openNewForm} title="Wein hinzufügen"
+              style={{ display: "flex", alignItems: "center", gap: 6, background: "#7A2038", color: "#FFFDF9", border: "none", borderRadius: 8, padding: "8px 12px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+              <Plus size={15} /> Wein
+            </button>
             <button onClick={onLogout} title="Abmelden"
               style={{ display: "flex", alignItems: "center", gap: 6, background: "#FFFDF9", border: "1px solid #DDD2BE", borderRadius: 8, padding: "8px 10px", fontSize: 13, cursor: "pointer", color: "#7A6F63" }}>
               <X size={15} />
@@ -1069,9 +1102,9 @@ function Weinkeller({ onLogout }) {
           </div>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: savedFlash ? "#4E9B57" : "#B7AB98", marginTop: -12, marginBottom: 14, height: 14, transition: "color 0.3s" }}>
+        {(savedFlash || !loaded) && (<div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: savedFlash ? "#4E9B57" : "#B7AB98", marginTop: -12, marginBottom: 14, height: 14, transition: "color 0.3s" }}>
           {savedFlash ? "✓ in der Cloud gespeichert – auf allen Geräten sichtbar" : (!loaded ? "Verbindung wird hergestellt…" : "\u00A0")}
-        </div>
+        </div>)}
 
         {cloudError && (
           <div style={{ background: "#FBEAEA", border: "1px solid #E5B8B4", borderRadius: 8, padding: "10px 12px", fontSize: 13, marginBottom: 14, color: "#8A3A34" }}>
@@ -1079,21 +1112,52 @@ function Weinkeller({ onLogout }) {
           </div>
         )}
 
-        {dirty && !cloudError && (
-          <div style={{ background: "#FBF3E4", border: "1px solid #E3D3B0", borderRadius: 8, padding: "10px 12px", fontSize: 13, marginBottom: 14, color: "#6B5940" }}>
-            Deine Daten werden automatisch in der Cloud gespeichert und mit allen Geräten synchronisiert. „Sichern" legt zusätzlich eine Excel-Sicherungskopie an.
+        {dirty && !cloudError && !cloudHinweisAus && (
+          <div style={{ background: "#FBF3E4", border: "1px solid #E3D3B0", borderRadius: 8, padding: "10px 12px", fontSize: 13, marginBottom: 14, color: "#6B5940", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+            <span>Deine Daten werden automatisch in der Cloud gespeichert und mit allen Geräten synchronisiert. „Sichern" legt zusätzlich eine Excel-Sicherungskopie an.</span>
+            <button onClick={() => { setCloudHinweisAus(true); try { localStorage.setItem("cloudHinweisAus", "1"); } catch (e) {} }}
+              style={{ flexShrink: 0, background: "none", border: "1px solid #E3D3B0", borderRadius: 6, padding: "4px 10px", fontSize: 12, color: "#6B5940", cursor: "pointer" }}>
+              Verstanden
+            </button>
           </div>
         )}
 
-        <div style={{ marginBottom: 12 }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "stretch", marginBottom: 8 }}>
           <input
             type="text"
             value={suchtext}
             onChange={(e) => setSuchtext(e.target.value)}
             placeholder="Suche: Weinname, Weingut, Rebsorte, Land, Notizen…"
+            style={{ flex: 1, minWidth: 0 }}
           />
+          <button onClick={() => setFilterOffen(!filterOffen)}
+            style={{ flexShrink: 0, background: filterOffen || aktiveAnzahl ? "#7A2038" : "#FFFDF9", color: filterOffen || aktiveAnzahl ? "#FFFDF9" : "#2B2320", border: "1px solid #DDD2BE", borderRadius: 10, padding: "0 14px", fontSize: 14, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+            Filter{aktiveAnzahl ? ` (${aktiveAnzahl})` : ""} {filterOffen ? "▲" : "▼"}
+          </button>
         </div>
 
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+          {[["Neuester Jahrgang", nurNeuesterJahrgang, setNurNeuesterJahrgang], ["Nur unbewertet", nurUnbewertet, setNurUnbewertet]].map(([label, aktiv, setter]) => (
+            <button key={label} onClick={() => setter(!aktiv)}
+              style={{ background: aktiv ? "#7A2038" : "#FFFDF9", color: aktiv ? "#FFFDF9" : "#4A4038", border: "1px solid " + (aktiv ? "#7A2038" : "#DDD2BE"), borderRadius: 16, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {aktiveAnzahl > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginBottom: 10, fontSize: 12 }}>
+            {aktiveChips.map((c) => (
+              <span key={c} style={{ background: "#EFE6D3", borderRadius: 6, padding: "3px 8px", color: "#4A4038" }}>{c}</span>
+            ))}
+            <button onClick={filterZuruecksetzen}
+              style={{ background: "none", border: "none", color: "#7A2038", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: "3px 4px", textDecoration: "underline" }}>
+              Zurücksetzen
+            </button>
+          </div>
+        )}
+
+        {filterOffen && (<>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
           <div style={{ flex: "1 1 140px" }}>
             <label>Sortieren nach</label>
@@ -1227,30 +1291,19 @@ function Weinkeller({ onLogout }) {
           </div>
         </div>
 
-        <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, cursor: "pointer", textTransform: "none", letterSpacing: 0, fontSize: 13, fontWeight: 500, color: "#2B2320" }}>
-          <input type="checkbox" checked={nurNeuesterJahrgang} onChange={(e) => setNurNeuesterJahrgang(e.target.checked)} style={{ width: "auto" }} />
-          Nur neuesten Jahrgang je Wein anzeigen
-        </label>
+        </>)}
 
-        <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, cursor: "pointer", textTransform: "none", letterSpacing: 0, fontSize: 13, fontWeight: 500, color: "#2B2320" }}>
-          <input type="checkbox" checked={nurUnbewertet} onChange={(e) => setNurUnbewertet(e.target.checked)} style={{ width: "auto" }} />
-          Nur unbewertete Weine anzeigen (noch nicht verkostet)
-        </label>
-
-        <button onClick={openNewForm}
-          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", background: "#7A2038", color: "#FFFDF9", border: "none", borderRadius: 10, padding: "12px", fontSize: 14, fontWeight: 600, cursor: "pointer", marginBottom: 10 }}>
-          <Plus size={16} /> Wein hinzufügen
-        </button>
-
+        <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
         <button onClick={copyForClaude} disabled={filtered.length === 0}
-          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", background: copyFlash ? "#EFE6D3" : "#FFFDF9", color: "#2B2320", border: "1px solid #DDD2BE", borderRadius: 10, padding: "10px", fontSize: 13, fontWeight: 500, cursor: filtered.length === 0 ? "default" : "pointer", opacity: filtered.length === 0 ? 0.5 : 1, marginBottom: 8 }}>
+          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", background: copyFlash ? "#EFE6D3" : "#FFFDF9", color: "#2B2320", border: "1px solid #DDD2BE", borderRadius: 10, padding: "10px", fontSize: 13, fontWeight: 500, cursor: filtered.length === 0 ? "default" : "pointer", opacity: filtered.length === 0 ? 0.5 : 1 }}>
           {copyFlash ? "✓ kopiert – jetzt bei Claude einfügen" : `Für Claude kopieren (${filtered.length} gefiltert)`}
         </button>
 
         <button onClick={copyForClaudeSlim} disabled={filtered.length === 0}
-          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", background: copyFlashSlim ? "#EFE6D3" : "#FFFDF9", color: "#2B2320", border: "1px solid #DDD2BE", borderRadius: 10, padding: "10px", fontSize: 13, fontWeight: 500, cursor: filtered.length === 0 ? "default" : "pointer", opacity: filtered.length === 0 ? 0.5 : 1, marginBottom: 20 }}>
-          {copyFlashSlim ? "✓ kopiert – jetzt bei Claude einfügen" : `Kurzliste für Speisebegleitung (${filtered.length} gefiltert)`}
+          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", background: copyFlashSlim ? "#EFE6D3" : "#FFFDF9", color: "#2B2320", border: "1px solid #DDD2BE", borderRadius: 10, padding: "10px", fontSize: 13, fontWeight: 500, cursor: filtered.length === 0 ? "default" : "pointer", opacity: filtered.length === 0 ? 0.5 : 1 }}>
+          {copyFlashSlim ? "✓ kopiert – jetzt bei Claude einfügen" : `Speisen-Kurzliste (${filtered.length})`}
         </button>
+        </div>
 
         {loaded && filtered.length === 0 && (
           <div style={{ textAlign: "center", color: "#7A6F63", padding: "40px 0" }}>
