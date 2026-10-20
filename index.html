@@ -1630,7 +1630,10 @@ function Weinkeller({ onLogout }) {
             {!form.hinzugefuegt && (
               <div style={{ marginBottom: 16 }}>
                 <label>Schnelleingabe (Text von Claude einfügen)</label>
-                <textarea rows={6} value={quickText} onChange={(e) => setQuickText(e.target.value)} placeholder={"Weingut: ...\nWeinname: ...\nLand: ...\n..."} />
+                <div style={{ fontSize: 12, color: "#7A6F63", marginBottom: 6 }}>
+                  Steht die Zeile "Merkliste: Ja" im Text, kommt der Wein auf die Merkliste. Die Felder, die erst nach dem Trinken gefüllt werden, bleiben dann ohne gelbe Markierung.
+                </div>
+                <textarea rows={6} value={quickText} onChange={(e) => setQuickText(e.target.value)} placeholder={"Weingut: ...\nWeinname: ...\nLand: ...\nMerkliste: Ja\n..."} />
                 <button onClick={applyQuickText} style={{ marginTop: 6, background: "#EFE6D3", border: "1px solid #DDD2BE", borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: "pointer" }}>
                   Übernehmen
                 </button>
