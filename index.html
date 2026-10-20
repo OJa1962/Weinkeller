@@ -240,6 +240,7 @@ const FIELD_MAP = {
   "nachkauf-link": "nachkaufLink", "nachkauf link": "nachkaufLink",
   ausverkauft: "ausverkauft",
   merkliste: "merkliste", "auf merkliste": "merkliste",
+  "alt. bezugsquelle": "alternativeBezugsquelle", "alt bezugsquelle": "alternativeBezugsquelle",
   "weitere jahrgänge": "weitereJahrgaenge", "weitere jahrgaenge": "weitereJahrgaenge", "weitere jahrgänge (online)": "weitereJahrgaenge",
   kritiker: "kritiker", kritikerbewertung: "kritiker", kritikerbewertungen: "kritiker", "kritiker-bewertung": "kritiker",
   brauerei: "weingut",
@@ -1671,12 +1672,12 @@ function Weinkeller({ onLogout }) {
               {form.typ !== "Sake" && (
                 <div style={{ gridColumn: "1 / -1" }}>
                   <label>Kritikerbewertungen</label>
-                  <input placeholder="z. B. Wine Advocate 94 · Suckling 93 (Quelle)" value={form.kritiker} onChange={(e) => setForm({ ...form, kritiker: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.kritiker)} />
+                  <input placeholder="z. B. Wine Advocate 94 · Suckling 93 (Quelle)" value={form.kritiker} onChange={(e) => setForm({ ...form, kritiker: e.target.value })} onFocus={alleMarkieren} style={{}} />
                 </div>
               )}
               <div style={{ gridColumn: "1 / -1" }}>
                 <label>Weitere Jahrgänge online (ein Eintrag pro Zeile: Jahrgang · Händler · Preis · Link)</label>
-                <textarea rows={2} value={form.weitereJahrgaenge} onChange={(e) => setForm({ ...form, weitereJahrgaenge: e.target.value })} onFocus={alleMarkieren} placeholder={"2023 · Tesdorpf · 34,90 · https://…"} style={leerStil(form.weitereJahrgaenge)} />
+                <textarea rows={2} value={form.weitereJahrgaenge} onChange={(e) => setForm({ ...form, weitereJahrgaenge: e.target.value })} onFocus={alleMarkieren} placeholder={"2023 · Tesdorpf · 34,90 · https://…"} style={{}} />
               </div>
               <div><label>Jahrgang</label><input value={form.jahrgang} onChange={(e) => setForm({ ...form, jahrgang: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.jahrgang)} /></div>
               <div><label>Rebsorte</label><input value={form.traube} onChange={(e) => setForm({ ...form, traube: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.traube)} /></div>
@@ -1767,12 +1768,12 @@ function Weinkeller({ onLogout }) {
               </div>
               <div>
                 <label>Händler-Jahrgang (anderer Jahrgang)</label>
-                <input placeholder="z. B. 2023" value={form.haendlerJahrgang} onChange={(e) => setForm({ ...form, haendlerJahrgang: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.haendlerJahrgang)} />
+                <input placeholder="z. B. 2023" value={form.haendlerJahrgang} onChange={(e) => setForm({ ...form, haendlerJahrgang: e.target.value })} onFocus={alleMarkieren} style={{}} />
               </div>
-              <div><label>Nachkauf-Preis (€)</label><UnitInput unit="€" placeholder="z. B. 34,90" value={form.nachkaufPreis} onChange={(e) => setForm({ ...form, nachkaufPreis: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.nachkaufPreis)} /></div>
+              <div><label>Nachkauf-Preis (€)</label><UnitInput unit="€" placeholder="z. B. 34,90" value={form.nachkaufPreis} onChange={(e) => setForm({ ...form, nachkaufPreis: e.target.value })} onFocus={alleMarkieren} style={{}} /></div>
               <div>
                 <label>Nachkauf-Link</label>
-                <input placeholder="https://…" value={form.nachkaufLink} onChange={(e) => setForm({ ...form, nachkaufLink: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.nachkaufLink)} />
+                <input placeholder="https://…" value={form.nachkaufLink} onChange={(e) => setForm({ ...form, nachkaufLink: e.target.value })} onFocus={alleMarkieren} style={{}} />
               </div>
               <div>
                 <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
