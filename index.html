@@ -568,7 +568,7 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
     : "";
 
   return (
-    <div style={{ background: "#FFFDF9", border: "1px solid #E5DBC8", borderRadius: 12, padding: 14, position: "relative", borderLeft: `5px solid ${TYP_COLORS[w.typ] || "#7A2038"}` }}>
+    <div style={{ background: w.merkliste === "Ja" ? "#EAF1FA" : "#FFFDF9", border: w.merkliste === "Ja" ? "1px solid #A9C0DE" : "1px solid #E5DBC8", borderRadius: 12, padding: 14, position: "relative", borderLeft: `5px solid ${w.merkliste === "Ja" ? "#4A6FA5" : (TYP_COLORS[w.typ] || "#7A2038")}` }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div style={{ display: "flex", gap: 10 }}>
           {w.etikettVorne && <LabelThumb src={w.etikettVorne} onClick={() => onImageClick(w.etikettVorne)} />}
