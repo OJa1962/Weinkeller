@@ -626,64 +626,66 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
   const menuBtn = { display: "flex", alignItems: "center", gap: 8, width: "100%", background: "none", border: "none", padding: "10px 14px", fontSize: 13, cursor: "pointer", textAlign: "left", color: "#4A4038" };
 
   return (
-    <div style={{ background: "#FFFFFF", border: "1px solid #E7E2DA", borderRadius: 16, padding: "14px 16px 14px 18px", position: "relative", display: "flex", flexDirection: "column", minHeight: 230, overflow: "hidden" }}>
+    <div style={{ background: "#FFFFFF", border: "1px solid #E7E2DA", borderRadius: 14, padding: "14px 14px 12px 18px", position: "relative", display: "flex", flexDirection: "column", minHeight: 212, overflow: "hidden" }}>
       <div style={{ position: "absolute", left: 0, top: 14, bottom: 14, width: 3, borderRadius: "0 3px 3px 0", background: akzent }} />
 
-      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 6 }}>
-        <button onClick={() => onExpand(w)} title="Vollansicht öffnen" style={aktion}><Maximize2 size={15} /></button>
-        <button onClick={() => onToggleFavorit(w.id)} title="Favorit" style={{ ...aktion, color: w.favorit ? "#C9A961" : "#B9B0A3" }}><Star size={17} fill={w.favorit ? "#C9A961" : "none"} /></button>
-        <button onClick={() => onToggleFavoritBJ(w.id)} title="Favorit BJ" style={{ ...aktion, color: w.favoritBJ ? "#B0453F" : "#B9B0A3" }}><Heart size={16} fill={w.favoritBJ ? "#B0453F" : "none"} /></button>
-        <div ref={menuRef} style={{ position: "relative" }}>
-          <button onClick={() => setMenuOffen((o) => !o)} title="Weitere Aktionen" style={{ ...aktion, fontSize: 18, lineHeight: 1 }}>⋯</button>
-          {menuOffen && (
-            <div style={{ position: "absolute", right: 0, top: 36, background: "#FFFFFF", border: "1px solid #E7E2DA", borderRadius: 10, boxShadow: "0 8px 20px rgba(60,40,20,.15)", zIndex: 5, minWidth: 190, overflow: "hidden" }}>
-              <button onClick={() => { setMenuOffen(false); onToggleMerkliste(w.id); }} style={menuBtn}>🔖 {istMerkliste ? "Von der Merkliste nehmen" : "Auf die Merkliste"}</button>
-              <button onClick={() => { setMenuOffen(false); onEdit(w); }} style={menuBtn}><Pencil size={14} /> Bearbeiten</button>
-              <button onClick={() => { setMenuOffen(false); onDelete(w.id); }} style={{ ...menuBtn, color: "#B0453F" }}><Trash2 size={14} /> Löschen</button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div style={{ display: "flex", gap: 12, alignItems: "flex-start", marginTop: 4 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 10, height: 58 }}>
+        {w.bewertung ? (
+          <div title="Bewertung" style={{ width: 34, height: 34, borderRadius: "50%", border: `1.5px solid ${bewertungFarbe(w.bewertung)}`, display: "grid", placeItems: "center", fontWeight: 700, fontSize: 13, color: bewertungFarbe(w.bewertung), flex: "0 0 auto", marginTop: 2 }}>
+            {w.bewertung}
+          </div>
+        ) : (
+          <div title="Noch nicht bewertet" style={{ width: 34, height: 34, borderRadius: "50%", border: "1.5px dashed #E7E2DA", display: "grid", placeItems: "center", color: "#857D75", flex: "0 0 auto", marginTop: 2, fontSize: 13 }}>–</div>
+        )}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="display-font" style={{ fontSize: 20, fontWeight: 600, lineHeight: 1.15 }}>{w.weinname || "—"}</div>
-          <div style={{ fontSize: 13.5, color: "#857D75", marginTop: 6 }}>
+          <div className="display-font" style={{ fontSize: 18, fontWeight: 600, lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{w.weinname || "—"}</div>
+          <div style={{ fontSize: 13, color: "#857D75", marginTop: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             <span style={{ fontWeight: 600, color: "#1E1B18" }}>{w.weingut}</span>
             {w.traube && <span>{` · ${w.traube}`}</span>}
             {w.jahrgang && <span>{` · ${w.jahrgang}`}</span>}
           </div>
         </div>
-        {w.etikettVorne ? (
+        {w.etikettVorne && (
           <img src={w.etikettVorne} alt="Etikett" onClick={() => onImageClick(w.etikettVorne)}
-            style={{ width: 64, height: 84, objectFit: "contain", borderRadius: 10, background: "#F4F1EC", cursor: "zoom-in", flex: "0 0 auto", filter: "grayscale(85%)" }} />
-        ) : (
-          <div style={{ width: 64, height: 84, borderRadius: 10, border: "1px dashed #E7E2DA", flex: "0 0 auto" }} />
+            style={{ width: 46, height: 62, objectFit: "cover", borderRadius: 7, background: "#F4F1EC", cursor: "zoom-in", flex: "0 0 auto", filter: "grayscale(85%)" }} />
         )}
       </div>
 
-      <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", fontSize: 13, color: "#4A4038", marginTop: 12 }}>
-        {w.land && <span>{w.land}{w.region ? `, ${w.region}` : ""}</span>}
-        {preis && <span style={{ marginLeft: "auto", fontSize: 17, fontWeight: 700, color: "#7A2038" }}>{preis}</span>}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, fontSize: 13, color: "#857D75", marginTop: 6 }}>
+        <span>{[w.land, w.region].filter(Boolean).join(", ")}{w.alkohol ? ` · ${w.alkohol} % Vol.` : ""}</span>
+        {preis && <span style={{ fontWeight: 700, fontSize: 16, color: "#1E1B18", whiteSpace: "nowrap" }}>{preis}</span>}
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", fontSize: 13, color: "#4A4038", marginTop: 4 }}>
-        {w.alkohol && <span>{w.alkohol}% Vol.</span>}
-        {w.anzahlFlaschen && <span>🍾 {w.anzahlFlaschen} {String(w.anzahlFlaschen) === "1" ? "Flasche" : "Flaschen"}</span>}
-        {w.bewertung && (
-          <div title="Bewertung" style={{ marginLeft: "auto", width: 40, height: 40, borderRadius: "50%", border: `3px solid ${bewertungFarbe(w.bewertung)}`, display: "grid", placeItems: "center", fontWeight: 700, fontSize: 14, color: bewertungFarbe(w.bewertung), flexShrink: 0 }}>
-            {w.bewertung}
-          </div>
-        )}
-      </div>
+      {w.anzahlFlaschen && <div style={{ fontSize: 13, color: "#857D75", marginTop: 2 }}>🍾 {w.anzahlFlaschen} {String(w.anzahlFlaschen) === "1" ? "Flasche" : "Flaschen"}</div>}
 
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginTop: 10 }}>
+      <div style={{ marginTop: "auto", paddingTop: 10, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
         {istMerkliste && <span style={{ ...pille, background: "#3F6E9E" }}>🔖 {w.merklisteArt === "kaufen" ? "Kaufen" : "Trinken"}</span>}
         {w.trinkort && (gps ? (
           <button onClick={(e) => { e.stopPropagation(); setKarteOffen((o) => !o); }} title="Ort auf der Karte zeigen"
-            style={{ ...chip, border: "none", cursor: "pointer", color: "#7A2038", fontWeight: 600 }}>
+            style={{ ...chip, border: "none", cursor: "pointer", color: "#7A2038", fontWeight: 600, whiteSpace: "nowrap" }}>
             📍 {w.trinkort} {karteOffen ? "▴" : "▾"}
           </button>
-        ) : <span style={chip}>📍 {w.trinkort}</span>)}
+        ) : <span style={{ ...chip, whiteSpace: "nowrap" }}>📍 {w.trinkort}</span>)}
+        {linkGueltig(w.link) && (
+          <a href={linkBereinigen(w.link)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+            style={{ ...chip, background: "#7A2038", color: "#FFFFFF", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}>
+            🛒 {haendlerAusLink(w.link)}
+          </a>
+        )}
+        <div style={{ display: "flex", gap: 2, marginLeft: "auto", alignItems: "center" }}>
+          <button onClick={() => onExpand(w)} title="Vollansicht öffnen" style={{ ...aktion, width: 26, height: 26, background: "transparent" }}><Maximize2 size={14} /></button>
+          <button onClick={() => onToggleFavorit(w.id)} title="Favorit" style={{ ...aktion, width: 26, height: 26, background: "transparent", color: w.favorit ? "#C9A961" : "#B9B0A3" }}><Star size={15} fill={w.favorit ? "#C9A961" : "none"} /></button>
+          <button onClick={() => onToggleFavoritBJ(w.id)} title="Favorit BJ" style={{ ...aktion, width: 26, height: 26, background: "transparent", color: w.favoritBJ ? "#B0453F" : "#B9B0A3" }}><Heart size={14} fill={w.favoritBJ ? "#B0453F" : "none"} /></button>
+          <div ref={menuRef} style={{ position: "relative" }}>
+            <button onClick={() => setMenuOffen((o) => !o)} title="Weitere Aktionen" style={{ ...aktion, width: 26, height: 26, background: "transparent", fontSize: 16, lineHeight: 1 }}>⋯</button>
+            {menuOffen && (
+              <div style={{ position: "absolute", right: 0, bottom: 32, background: "#FFFFFF", border: "1px solid #E7E2DA", borderRadius: 10, boxShadow: "0 8px 20px rgba(60,40,20,.15)", zIndex: 5, minWidth: 190, overflow: "hidden" }}>
+                <button onClick={() => { setMenuOffen(false); onToggleMerkliste(w.id); }} style={menuBtn}>🔖 {istMerkliste ? "Von der Merkliste nehmen" : "Auf die Merkliste"}</button>
+                <button onClick={() => { setMenuOffen(false); onEdit(w); }} style={menuBtn}><Pencil size={14} /> Bearbeiten</button>
+                <button onClick={() => { setMenuOffen(false); onDelete(w.id); }} style={{ ...menuBtn, color: "#B0453F" }}><Trash2 size={14} /> Löschen</button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {karteOffen && gps && (() => {
@@ -699,14 +701,6 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
         );
       })()}
 
-      {linkGueltig(w.link) && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
-          <a href={linkBereinigen(w.link)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
-            style={{ ...chip, background: "#7A2038", color: "#FFFFFF", fontWeight: 600, textDecoration: "none" }}>
-            🛒 Angebot bei {haendlerAusLink(w.link)}
-          </a>
-        </div>
-      )}
     </div>
   );
 }
@@ -1401,14 +1395,6 @@ function Weinkeller({ onLogout }) {
           </div>
         )}
 
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
-          {[["Neuester Jahrgang", nurNeuesterJahrgang, setNurNeuesterJahrgang], ["Nur unbewertet", nurUnbewertet, setNurUnbewertet]].map(([label, aktiv, setter]) => (
-            <button key={label} onClick={() => setter(!aktiv)}
-              style={{ background: aktiv ? "#211D1A" : "#FFFFFF", color: aktiv ? "#FFFFFF" : "#4A4038", border: "1px solid " + (aktiv ? "#211D1A" : "#E7E2DA"), borderRadius: 999, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-              {label}
-            </button>
-          ))}
-        </div>
 
         {aktiveAnzahl > 0 && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginBottom: 10, fontSize: 12 }}>
@@ -1447,10 +1433,10 @@ function Weinkeller({ onLogout }) {
           {[["Alle Typen", "Alle", filterTyp, setFilterTyp], ...["Rot", "Weiß", "Rosé", "Schaumwein", "Champagner", "PET NAT", "Süßwein", "Sake"].map((t) => [t, t, filterTyp, setFilterTyp])].map(([label, wert, aktuell, setter]) => (
             <button key={label} onClick={() => setter(wert === "Alle" || aktuell === wert ? "Alle" : wert)}
               style={{ flex: "0 0 auto", whiteSpace: "nowrap", background: aktuell === wert ? "#211D1A" : "#FFFFFF", color: aktuell === wert ? "#FFFFFF" : "#211D1A", border: "1px solid " + (aktuell === wert ? "#211D1A" : "#E7E2DA"), borderRadius: 999, padding: "7px 13px", fontSize: 13, cursor: "pointer" }}>
-              {wert !== "Alle" && <span style={{ width: 8, height: 8, borderRadius: "50%", background: TYP_COLORS[wert] || "#7A2038", display: "inline-block" }} />}
               {label}
             </button>
           ))}
+          <span style={{ flex: "0 0 1px", background: "#E7E2DA", margin: "4px 6px" }} />
           {haeufigeLaender.map((l) => (
             <button key={l} onClick={() => setFilterLand(filterLand === l ? "Alle" : l)}
               style={{ flex: "0 0 auto", whiteSpace: "nowrap", background: filterLand === l ? "#211D1A" : "#FFFFFF", color: filterLand === l ? "#FFFFFF" : "#211D1A", border: "1px solid " + (filterLand === l ? "#211D1A" : "#E7E2DA"), borderRadius: 999, padding: "7px 13px", fontSize: 13, cursor: "pointer" }}>
@@ -1460,6 +1446,14 @@ function Weinkeller({ onLogout }) {
         </div>
 
         {filterOffen && (<>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+          {[["Neuester Jahrgang", nurNeuesterJahrgang, setNurNeuesterJahrgang], ["Nur unbewertet", nurUnbewertet, setNurUnbewertet]].map(([label, aktiv, setter]) => (
+            <button key={label} onClick={() => setter(!aktiv)}
+              style={{ background: aktiv ? "#211D1A" : "#FFFFFF", color: aktiv ? "#FFFFFF" : "#4A4038", border: "1px solid " + (aktiv ? "#211D1A" : "#E7E2DA"), borderRadius: 999, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+              {label}
+            </button>
+          ))}
+        </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
           <div style={{ flex: "1 1 140px" }}>
             <label>Sortieren nach</label>
