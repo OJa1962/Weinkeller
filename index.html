@@ -656,7 +656,7 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
         </div>
         {w.etikettVorne ? (
           <img src={w.etikettVorne} alt="Etikett" onClick={() => onImageClick(w.etikettVorne)}
-            style={{ width: 64, height: 84, objectFit: "contain", borderRadius: 10, background: "#F4F1EC", cursor: "zoom-in", flex: "0 0 auto" }} />
+            style={{ width: 64, height: 84, objectFit: "contain", borderRadius: 10, background: "#F4F1EC", cursor: "zoom-in", flex: "0 0 auto", filter: "grayscale(85%)" }} />
         ) : (
           <div style={{ width: 64, height: 84, borderRadius: 10, border: "1px dashed #E7E2DA", flex: "0 0 auto" }} />
         )}
@@ -1221,7 +1221,8 @@ function Weinkeller({ onLogout }) {
       Bezugsquelle: w.bezugsquelle, "Alternative Bezugsquelle (online)": w.alternativeBezugsquelle, "Link (Händler)": w.link, Merkliste: w.merkliste, Kritiker: w.kritiker, "Weitere Jahrgänge (online)": w.weitereJahrgaenge, "Sake Reis": w.sakeReis, "Sake Präfektur": w.sakePraefektur, "Sake Klasse": w.sakeKlasse, "Sake Poliergrad (%)": w.sakePoliergrad, "Sake SMV": w.sakeSMV, "Sake Trinktemperatur": w.sakeTrinktemp, "Händler-Jahrgang": w.haendlerJahrgang, "Nachkauf-Preis (€)": w.nachkaufPreis, "Nachkauf-Link": w.nachkaufLink, "Nachkauf ausverkauft": w.ausverkauft, "Preis (€)": w.preis, "Anzahl Flaschen": w.anzahlFlaschen, "Bewertung (1-10)": w.bewertung,
       Weinbeschreibung: w.weinbeschreibung, Speiseempfehlung: w.speiseempfehlung, "Region kurz vorgestellt": w.regionBeschreibung, Hintergrundgeschichte: w.hintergrundgeschichte,
       "Wieder kaufen": w.wiederkaufen, Notizen: w.notizen, Favorit: w.favorit ? "Ja" : "Nein", "Favorit BJ": w.favoritBJ ? "Ja" : "Nein",
-      Dekantieren: w.dekantieren, "Dekantierzeit (Stunden)": w.dekantierzeit, "Restaurant/Ort": w.restaurantName, "Nur vor Ort erhältlich": w.nurVorOrtErhaeltlich,
+      Dekantieren: w.dekantieren, "Dekantierzeit (Stunden)": w.dekantierzeit, "Restaurant/Ort": w.restaurantName, "Website Restaurant": w.restaurantWebsite, "Nur vor Ort erhältlich": w.nurVorOrtErhaeltlich,
+      "Getrunken in": w.trinkort, "Adresse (Ort)": w.trinkortAdresse, "GPS-Koordinaten": w.trinkortGPS,
       Etikett: w.etikettVorne || "",
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
@@ -1295,6 +1296,10 @@ function Weinkeller({ onLogout }) {
             favoritBJ: String(r["Favorit BJ"] || "").toLowerCase() === "ja",
             dekantieren: String(r["Dekantieren"] || ""), dekantierzeit: String(r["Dekantierzeit (Stunden)"] || ""),
             restaurantName: String(r["Restaurant/Ort"] || ""),
+            restaurantWebsite: String(r["Website Restaurant"] || ""),
+            trinkort: String(r["Getrunken in"] || ""),
+            trinkortAdresse: String(r["Adresse (Ort)"] || ""),
+            trinkortGPS: String(r["GPS-Koordinaten"] || ""),
             nurVorOrtErhaeltlich: String(r["Nur vor Ort erhältlich"] || ""),
             etikettVorne: String(r["Etikett"] || ""),
           };
@@ -1321,32 +1326,39 @@ function Weinkeller({ onLogout }) {
     <div style={{ minHeight: "100vh", background: "#F6F4F1", fontFamily: "'Inter', system-ui, sans-serif", color: "#211D1A" }}>
       <div style={{ maxWidth: 1400, margin: "0 auto", padding: "24px 16px 80px" }}>
         <div style={{ maxWidth: 720, margin: "0 auto" }}>
-        <div style={{ marginBottom: 22 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-              <h1 className="display-font" style={{ fontSize: 28, fontWeight: 600, margin: 0, letterSpacing: "-0.01em" }}>Weinkeller</h1>
-              <span style={{ fontSize: 20, fontWeight: 600, color: "#7A2038" }}>OJ</span>
-            </div>
-            <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-              <label title="Laden" style={{ display: "flex", alignItems: "center", gap: 6, background: "#FFFFFF", border: "1px solid #E7E2DA", borderRadius: 10, padding: "0 12px", height: 40, fontSize: 13, cursor: "pointer", margin: 0, textTransform: "none", letterSpacing: 0, color: "#211D1A", fontWeight: 500 }}>
-                <Upload size={15} /> Laden
-                <input type="file" accept=".xlsx,.xls" onChange={importExcel} style={{ display: "none" }} />
-              </label>
-              <button onClick={exportExcel} title="Excel-Sicherung"
-                style={{ display: "flex", alignItems: "center", gap: 6, background: dirty ? "#7A2038" : "#FFFFFF", color: dirty ? "#FFFFFF" : "#211D1A", border: "1px solid " + (dirty ? "#7A2038" : "#E7E2DA"), borderRadius: 10, padding: "0 12px", height: 40, fontSize: 13, cursor: "pointer" }}>
-                <Download size={15} /> Sichern
-              </button>
-              <button onClick={openNewForm} title="Wein hinzufügen"
-                style={{ display: "flex", alignItems: "center", gap: 6, background: "#7A2038", color: "#FFFFFF", border: "none", borderRadius: 10, padding: "0 16px", height: 40, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
-                <Plus size={16} /> Wein erfassen
-              </button>
-              <button onClick={onLogout} title="Abmelden"
-                style={{ display: "flex", alignItems: "center", justifyContent: "center", background: "#FFFFFF", border: "1px solid #E7E2DA", borderRadius: 10, width: 40, height: 40, cursor: "pointer", color: "#7A726B", padding: 0 }}>
-                <X size={15} />
-              </button>
-            </div>
+        <header style={{ padding: "4px 0 0" }}>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 6, marginBottom: 10 }}>
+            <label title="Laden" style={{ display: "flex", alignItems: "center", gap: 6, background: "#FFFFFF", border: "1px solid #E7E2DA", borderRadius: 10, padding: "0 10px", height: 32, fontSize: 12, cursor: "pointer", margin: 0, color: "#211D1A", fontWeight: 500 }}>
+              <Upload size={14} /> Laden
+              <input type="file" accept=".xlsx,.xls" onChange={importExcel} style={{ display: "none" }} />
+            </label>
+            <button onClick={exportExcel} title="Excel-Sicherung"
+              style={{ display: "flex", alignItems: "center", gap: 6, background: dirty ? "#7A2038" : "#FFFFFF", color: dirty ? "#FFFFFF" : "#211D1A", border: "1px solid " + (dirty ? "#7A2038" : "#E7E2DA"), borderRadius: 10, padding: "0 10px", height: 32, fontSize: 12, cursor: "pointer" }}>
+              <Download size={14} /> Sichern
+            </button>
+            <button onClick={onLogout} title="Abmelden"
+              style={{ display: "flex", alignItems: "center", justifyContent: "center", background: "#FFFFFF", border: "1px solid #E7E2DA", borderRadius: 10, width: 32, height: 32, cursor: "pointer", color: "#7A726B", padding: 0 }}>
+              <X size={14} />
+            </button>
           </div>
-        </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexShrink: 0 }}>
+              <h1 className="display-font" style={{ fontSize: 26, fontWeight: 600, margin: 0, letterSpacing: "-0.01em" }}>Weinkeller</h1>
+              <span style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 20, fontWeight: 700, fontStyle: "normal", color: "#7A2038" }}>OJ</span>
+            </div>
+            <input
+              type="text"
+              value={suchtext}
+              onChange={(e) => setSuchtext(e.target.value)}
+              placeholder="Suche: Weinname, Weingut, Rebsorte …"
+              style={{ flex: 1, minWidth: 0, height: 48, borderRadius: 14, background: "#FFFFFF", border: "1px solid #E7E2DA", padding: "0 16px", fontSize: 15 }}
+            />
+            <button onClick={openNewForm} title="Wein hinzufügen"
+              style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 6, background: "#7A2038", color: "#FFFFFF", border: "none", borderRadius: 14, padding: "0 18px", height: 48, fontSize: 15, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+              <Plus size={16} /> Wein
+            </button>
+          </div>
+        </header>
 
         {(savedFlash || !loaded) && (<div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: savedFlash ? "#4E9B57" : "#B7AB98", marginTop: -12, marginBottom: 14, height: 14, transition: "color 0.3s" }}>
           {savedFlash ? "✓ in der Cloud gespeichert – auf allen Geräten sichtbar" : (!loaded ? "Verbindung wird hergestellt…" : "\u00A0")}
@@ -1367,20 +1379,6 @@ function Weinkeller({ onLogout }) {
             </button>
           </div>
         )}
-
-        <div style={{ display: "flex", gap: 8, alignItems: "stretch", marginBottom: 12 }}>
-          <input
-            type="text"
-            value={suchtext}
-            onChange={(e) => setSuchtext(e.target.value)}
-            placeholder="Suche: Weinname, Weingut, Rebsorte, Land, Notizen…"
-            style={{ flex: 1, minWidth: 0, height: 46, borderRadius: 12, background: "#FFFFFF", border: "1px solid #E7E2DA", padding: "0 14px" }}
-          />
-          <button onClick={() => setFilterOffen(!filterOffen)}
-            style={{ flexShrink: 0, background: filterOffen || aktiveAnzahl ? "#211D1A" : "#FFFFFF", color: filterOffen || aktiveAnzahl ? "#FFFFFF" : "#211D1A", border: "1px solid #E7E2DA", borderRadius: 12, padding: "0 16px", height: 46, fontSize: 14, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
-            Filter{aktiveAnzahl ? ` (${aktiveAnzahl})` : ""} {filterOffen ? "▲" : "▼"}
-          </button>
-        </div>
 
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
           {[["Neuester Jahrgang", nurNeuesterJahrgang, setNurNeuesterJahrgang], ["Nur unbewertet", nurUnbewertet, setNurUnbewertet]].map(([label, aktiv, setter]) => (
@@ -1425,6 +1423,10 @@ function Weinkeller({ onLogout }) {
               {l}
             </button>
           ))}
+          <button onClick={() => setFilterOffen(!filterOffen)}
+            style={{ flex: "0 0 auto", whiteSpace: "nowrap", background: filterOffen || aktiveAnzahl ? "#211D1A" : "#FFFFFF", color: filterOffen || aktiveAnzahl ? "#FFFFFF" : "#211D1A", border: "1px solid " + (filterOffen || aktiveAnzahl ? "#211D1A" : "#E7E2DA"), borderRadius: 999, padding: "7px 13px", fontSize: 13, cursor: "pointer" }}>
+            Filter{aktiveAnzahl ? ` (${aktiveAnzahl})` : ""} ⚙
+          </button>
         </div>
 
         {filterOffen && (<>
@@ -1623,7 +1625,7 @@ function Weinkeller({ onLogout }) {
               <div style={{ display: "flex", gap: 14 }}>
                 {dw.etikettVorne && (
                   <img src={dw.etikettVorne} alt="Etikett" onClick={() => setLightbox(dw.etikettVorne)}
-                    style={{ width: 68, height: 90, objectFit: "cover", borderRadius: 6, border: "1px solid #E5DBC8", flexShrink: 0, cursor: "pointer" }} />
+                    style={{ width: 128, height: 170, objectFit: "contain", borderRadius: 8, background: "#F4F1EC", border: "1px solid #E5DBC8", flexShrink: 0, cursor: "zoom-in" }} />
                 )}
                 <div>
                   <div className="display-font" style={{ fontSize: 24, fontWeight: 700 }}>{dw.weinname || "—"}</div>
