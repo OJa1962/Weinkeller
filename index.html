@@ -1669,24 +1669,6 @@ function Weinkeller({ onLogout }) {
               <div><label>Weinname</label><input value={form.weinname} onChange={(e) => setForm({ ...form, weinname: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.weinname)} /></div>
               <div><label>Land</label><input value={form.land} onChange={(e) => setForm({ ...form, land: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.land)} /></div>
               <div><label>Region</label><input value={form.region} onChange={(e) => setForm({ ...form, region: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.region)} /></div>
-              {form.typ === "Sake" && (<>
-              <div><label>Reissorte</label><input value={form.sakeReis} onChange={(e) => setForm({ ...form, sakeReis: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.sakeReis)} /></div>
-              <div><label>Präfektur</label><input value={form.sakePraefektur} onChange={(e) => setForm({ ...form, sakePraefektur: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.sakePraefektur)} /></div>
-              <div><label>Klasse</label><input placeholder="z. B. Junmai Ginjo" value={form.sakeKlasse} onChange={(e) => setForm({ ...form, sakeKlasse: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.sakeKlasse)} /></div>
-              <div><label>Poliergrad</label><UnitInput unit="%" placeholder="z. B. 50" value={form.sakePoliergrad} onChange={(e) => setForm({ ...form, sakePoliergrad: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.sakePoliergrad)} /></div>
-              <div><label>SMV (Sake-Meter-Value)</label><input placeholder="z. B. +3" value={form.sakeSMV} onChange={(e) => setForm({ ...form, sakeSMV: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.sakeSMV)} /></div>
-              <div><label>Trinktemperatur</label><input placeholder="z. B. gekühlt, 10–14 °C" value={form.sakeTrinktemp} onChange={(e) => setForm({ ...form, sakeTrinktemp: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.sakeTrinktemp)} /></div>
-              </>)}
-              {form.typ !== "Sake" && (
-                <div style={{ gridColumn: "1 / -1" }}>
-                  <label>Kritikerbewertungen</label>
-                  <input placeholder="z. B. Wine Advocate 94 · Suckling 93 (Quelle)" value={form.kritiker} onChange={(e) => setForm({ ...form, kritiker: e.target.value })} onFocus={alleMarkieren} style={{}} />
-                </div>
-              )}
-              <div style={{ gridColumn: "1 / -1" }}>
-                <label>Weitere Jahrgänge online (ein Eintrag pro Zeile: Jahrgang · Händler · Preis · Link)</label>
-                <textarea rows={2} value={form.weitereJahrgaenge} onChange={(e) => setForm({ ...form, weitereJahrgaenge: e.target.value })} onFocus={alleMarkieren} placeholder={"2023 · Tesdorpf · 34,90 · https://…"} style={{}} />
-              </div>
               <div><label>Jahrgang</label><input value={form.jahrgang} onChange={(e) => setForm({ ...form, jahrgang: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.jahrgang)} /></div>
               <div><label>Rebsorte</label><input value={form.traube} onChange={(e) => setForm({ ...form, traube: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.traube)} /></div>
               <div><label>Alkohol (%)</label><UnitInput unit="%" value={form.alkohol} onChange={(e) => setForm({ ...form, alkohol: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.alkohol)} /></div>
@@ -1696,6 +1678,14 @@ function Weinkeller({ onLogout }) {
                   <option>Rot</option><option>Weiß</option><option>Rosé</option><option>Schaumwein</option><option>Champagner</option><option>PET NAT</option><option>Süßwein</option><option>Sake</option>
                 </select>
               </div>
+              {form.typ === "Sake" && (<>
+              <div><label>Reissorte</label><input value={form.sakeReis} onChange={(e) => setForm({ ...form, sakeReis: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.sakeReis)} /></div>
+              <div><label>Präfektur</label><input value={form.sakePraefektur} onChange={(e) => setForm({ ...form, sakePraefektur: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.sakePraefektur)} /></div>
+              <div><label>Klasse</label><input placeholder="z. B. Junmai Ginjo" value={form.sakeKlasse} onChange={(e) => setForm({ ...form, sakeKlasse: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.sakeKlasse)} /></div>
+              <div><label>Poliergrad</label><UnitInput unit="%" placeholder="z. B. 50" value={form.sakePoliergrad} onChange={(e) => setForm({ ...form, sakePoliergrad: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.sakePoliergrad)} /></div>
+              <div><label>SMV (Sake-Meter-Value)</label><input placeholder="z. B. +3" value={form.sakeSMV} onChange={(e) => setForm({ ...form, sakeSMV: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.sakeSMV)} /></div>
+              <div><label>Trinktemperatur</label><input placeholder="z. B. gekühlt, 10–14 °C" value={form.sakeTrinktemp} onChange={(e) => setForm({ ...form, sakeTrinktemp: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.sakeTrinktemp)} /></div>
+              </>)}
               {form.typ !== "Süßwein" && (<div>
                 <label>Säure (1–5)</label>
                 <select value={form.saeure} onChange={(e) => setForm({ ...form, saeure: e.target.value ? parseInt(e.target.value, 10) : "" })} style={leerStil(form.saeure)}>
@@ -1733,6 +1723,12 @@ function Weinkeller({ onLogout }) {
                   </select>
                 </div>
               )}
+              {form.typ !== "Sake" && (
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <label>Kritikerbewertungen</label>
+                  <input placeholder="z. B. Wine Advocate 94 · Suckling 93 (Quelle)" value={form.kritiker} onChange={(e) => setForm({ ...form, kritiker: e.target.value })} onFocus={alleMarkieren} style={{}} />
+                </div>
+              )}
               <div><label>Bezugsquelle</label>
                 <select value={form.bezugsquelle} onChange={(e) => setForm({ ...form, bezugsquelle: e.target.value })} style={leerStilNutzer(form.bezugsquelle)}>
                   <option value=""></option>
@@ -1766,6 +1762,7 @@ function Weinkeller({ onLogout }) {
                   </select>
                 </div>
               )}
+              <div><label>Preis (€)</label><UnitInput unit="€" placeholder="z. B. 24,30 oder ca. 25" value={form.preis} onChange={(e) => setForm({ ...form, preis: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.preis)} /></div>
               <div>
                 <label>Alternative Bezugsquelle (online)</label>
                 <input placeholder="z. B. Tesdorpf – 43,90 €" value={form.alternativeBezugsquelle} onChange={(e) => setForm({ ...form, alternativeBezugsquelle: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.alternativeBezugsquelle)} />
@@ -1789,7 +1786,14 @@ function Weinkeller({ onLogout }) {
                   Nachkauf-Jahrgang ausverkauft
                 </label>
               </div>
-              <div><label>Preis (€)</label><UnitInput unit="€" placeholder="z. B. 24,30 oder ca. 25" value={form.preis} onChange={(e) => setForm({ ...form, preis: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.preis)} /></div>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label>Weitere Jahrgänge online (ein Eintrag pro Zeile: Jahrgang · Händler · Preis · Link)</label>
+                <textarea rows={2} value={form.weitereJahrgaenge} onChange={(e) => setForm({ ...form, weitereJahrgaenge: e.target.value })} onFocus={alleMarkieren} placeholder={"2023 · Tesdorpf · 34,90 · https://…"} style={{}} />
+              </div>
+              <div>
+                <label>Merkliste</label>
+                <button type="button" onClick={() => setForm({ ...form, merkliste: form.merkliste === "Ja" ? "" : "Ja" })} style={{ display: "flex", alignItems: "center", gap: 6, background: form.merkliste === "Ja" ? "#EAF1FA" : "#FFFDF9", border: form.merkliste === "Ja" ? "1px solid #4A6FA5" : "1px solid #DDD2BE", borderRadius: 8, padding: "8px 10px", cursor: "pointer", width: "100%" }}>🔖 {form.merkliste === "Ja" ? "Auf der Merkliste (noch nicht getrunken)" : "Auf die Merkliste (noch nicht getrunken)"}</button>
+              </div>
               {form.merkliste === "Ja" && (
                 <div style={{ gridColumn: "1 / -1", fontSize: 13, color: "#4A6FA5" }}>
                   🔖 Auf der Merkliste: Anzahl Flaschen, Bewertung, Wiederkaufen, Notizen und Favoriten werden nach dem Trinken ergänzt.
@@ -1816,6 +1820,22 @@ function Weinkeller({ onLogout }) {
                 <select value={form.wiederkaufen} onChange={(e) => setForm({ ...form, wiederkaufen: e.target.value })} style={leerStilNutzer(form.wiederkaufen)}>
                   <option value=""></option><option>Ja</option><option>Nein</option><option>Vielleicht</option>
                 </select>
+              </div>
+              </>)}
+              {form.merkliste !== "Ja" && (<>
+              <div>
+                <label>Favorit</label>
+                <button type="button" onClick={() => setForm({ ...form, favorit: !form.favorit })} style={{ display: "flex", alignItems: "center", gap: 6, background: "#FFFDF9", border: "1px solid #DDD2BE", borderRadius: 8, padding: "8px 10px", cursor: "pointer", width: "100%" }}>
+                  <Star size={22} color={form.favorit ? "#C9A961" : "#D8CDB8"} fill={form.favorit ? "#C9A961" : "none"} />
+                  <span style={{ fontSize: 14 }}>{form.favorit ? "Favorit" : "Kein Favorit"}</span>
+                </button>
+              </div>
+              <div>
+                <label>Favorit BJ</label>
+                <button type="button" onClick={() => setForm({ ...form, favoritBJ: !form.favoritBJ })} style={{ display: "flex", alignItems: "center", gap: 6, background: "#FFFDF9", border: "1px solid #DDD2BE", borderRadius: 8, padding: "8px 10px", cursor: "pointer", width: "100%" }}>
+                  <Heart size={20} color={form.favoritBJ ? "#B0453F" : "#D8CDB8"} fill={form.favoritBJ ? "#B0453F" : "none"} />
+                  <span style={{ fontSize: 14 }}>{form.favoritBJ ? "Favorit BJ" : "Kein Favorit BJ"}</span>
+                </button>
               </div>
               </>)}
               <div style={{ gridColumn: "1 / -1" }}>
@@ -1853,26 +1873,6 @@ function Weinkeller({ onLogout }) {
                   {uploading ? "Foto wird verkleinert und hochgeladen…" : "Foto über 📤 hochladen – wird automatisch verkleinert, in der Cloud gespeichert und ist auf allen Geräten sichtbar (zum Vergrößern antippen)."}
                 </div>
               </div>
-              <div>
-                <label>Merkliste</label>
-                <button type="button" onClick={() => setForm({ ...form, merkliste: form.merkliste === "Ja" ? "" : "Ja" })} style={{ display: "flex", alignItems: "center", gap: 6, background: form.merkliste === "Ja" ? "#EAF1FA" : "#FFFDF9", border: form.merkliste === "Ja" ? "1px solid #4A6FA5" : "1px solid #DDD2BE", borderRadius: 8, padding: "8px 10px", cursor: "pointer", width: "100%" }}>🔖 {form.merkliste === "Ja" ? "Auf der Merkliste (noch nicht getrunken)" : "Auf die Merkliste (noch nicht getrunken)"}</button>
-              </div>
-              {form.merkliste !== "Ja" && (<>
-              <div>
-                <label>Favorit</label>
-                <button type="button" onClick={() => setForm({ ...form, favorit: !form.favorit })} style={{ display: "flex", alignItems: "center", gap: 6, background: "#FFFDF9", border: "1px solid #DDD2BE", borderRadius: 8, padding: "8px 10px", cursor: "pointer", width: "100%" }}>
-                  <Star size={22} color={form.favorit ? "#C9A961" : "#D8CDB8"} fill={form.favorit ? "#C9A961" : "none"} />
-                  <span style={{ fontSize: 14 }}>{form.favorit ? "Favorit" : "Kein Favorit"}</span>
-                </button>
-              </div>
-              <div>
-                <label>Favorit BJ</label>
-                <button type="button" onClick={() => setForm({ ...form, favoritBJ: !form.favoritBJ })} style={{ display: "flex", alignItems: "center", gap: 6, background: "#FFFDF9", border: "1px solid #DDD2BE", borderRadius: 8, padding: "8px 10px", cursor: "pointer", width: "100%" }}>
-                  <Heart size={20} color={form.favoritBJ ? "#B0453F" : "#D8CDB8"} fill={form.favoritBJ ? "#B0453F" : "none"} />
-                  <span style={{ fontSize: 14 }}>{form.favoritBJ ? "Favorit BJ" : "Kein Favorit BJ"}</span>
-                </button>
-              </div>
-              </>)}
             </div>
 
             {error && <div style={{ color: "#B0453F", fontSize: 13, marginTop: 10 }}>{error}</div>}
