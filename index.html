@@ -481,7 +481,7 @@ function WeitereJahrgaengeZeile({ w, big }) {
             <span>{text}</span>
             {url && linkGueltig(url) && (
               <a href={linkBereinigen(url)} target="_blank" rel="noopener noreferrer" onClick={(ev) => ev.stopPropagation()}
-                style={{ color: "#7A2038", fontWeight: 600, textDecoration: "underline" }}>🛒 Angebot</a>
+                style={{ color: "#7A2038", fontWeight: 600, textDecoration: "underline" }}>🛒 {haendlerAusLink(url)}</a>
             )}
           </div>
         );
@@ -517,6 +517,14 @@ function preisAnzeige(p) {
 // Link nur anzeigen, wenn es eine echte Web-Adresse ist.
 function linkGueltig(s) {
   return /^https?:\/\//i.test(String(s ?? "").trim());
+}
+
+// Name des Händlers aus der Adresse ableiten (bekannte Shops mit Namen, sonst die Domain)
+function haendlerAusLink(url) {
+  let host = "";
+  try { host = new URL(String(url)).hostname.replace(/^www\./, "").replace(/^shop\./, ""); } catch (e) { host = ""; }
+  const bekannt = { "weinamlimit.de": "Wein am Limit", "gute-weine.de": "Lobenberg", "tesdorpf.de": "Tesdorpf", "sake-kontor.de": "Sake Kontor" };
+  return bekannt[host] || host || "Händler";
 }
 
 // Händler-Link bereinigen: Tracking-Parameter (utm_, mc_, ct) entfernen.
@@ -647,7 +655,7 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
       {linkGueltig(w.link) && (
         <div style={{ marginTop: 6, fontSize: 12.5, display: "flex", alignItems: "center", gap: 5 }}>
           <a href={linkBereinigen(w.link)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
-            style={{ color: "#7A2038", fontWeight: 600, textDecoration: "underline" }}>🛒 Zum Händler-Angebot</a>
+            style={{ color: "#7A2038", fontWeight: 600, textDecoration: "underline" }}>🛒 Angebot bei {haendlerAusLink(w.link)}</a>
         </div>
       )}
 
@@ -1541,7 +1549,7 @@ function Weinkeller({ onLogout }) {
               {linkGueltig(dw.link) && (
                 <div style={{ marginTop: 6, fontSize: 15, display: "flex", alignItems: "center", gap: 6 }}>
                   <a href={linkBereinigen(dw.link)} target="_blank" rel="noopener noreferrer"
-                    style={{ color: "#7A2038", fontWeight: 600, textDecoration: "underline" }}>🛒 Zum Händler-Angebot</a>
+                    style={{ color: "#7A2038", fontWeight: 600, textDecoration: "underline" }}>🛒 Angebot bei {haendlerAusLink(dw.link)}</a>
                 </div>
               )}
               {dw.kritiker && dw.typ !== "Sake" && (
