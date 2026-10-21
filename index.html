@@ -542,7 +542,12 @@ function SakeZeile({ w, big }) {
 function preisAnzeige(p) {
   const s = String(p ?? "").trim();
   if (!/\d/.test(s)) return "";
-  if (/^(ca\.?\s*)?\d[\d.,\s]*$/i.test(s)) return `${s} €`;
+  const m = s.match(/^(ca\.?\s*)?(\d[\d.,\s]*)$/i);
+  if (m) {
+    // Immer ganze Euro (ohne Dezimalstellen), deutsche Schreibweise mit Tausenderpunkt
+    const zahl = Math.round(parseFloat(m[2].replace(/\s/g, "").replace(/\./g, "").replace(",", ".")));
+    if (!isNaN(zahl)) return `${m[1] ? "ca. " : ""}${zahl.toLocaleString("de-DE")} €`;
+  }
   return s;
 }
 
@@ -618,7 +623,7 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
   const istMerkliste = w.merkliste === "Ja";
   const akzent = istMerkliste ? "#3F6E9E" : (TYP_COLORS[w.typ] || "#7A2038");
   const online = Object.prototype.hasOwnProperty.call(ONLINE_BEZUGSQUELLEN, w.bezugsquelle);
-  const preis = preisAnzeige(w.preis);
+  const preisZahl = /^\s*(ca\.?\s*)?\d[\d.,\s]*$/i.test(String(w.preis ?? "")) ? preisAnzeige(w.preis) : "";
 
   const chip = { display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, background: "#F4F1EC", color: "#4A4038", borderRadius: 999, padding: "3px 10px", lineHeight: 1.4 };
   const pille = { fontSize: 11, fontWeight: 600, color: "#FFFDF9", borderRadius: 999, padding: "2px 9px", lineHeight: 1.5 };
@@ -626,10 +631,10 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
   const menuBtn = { display: "flex", alignItems: "center", gap: 8, width: "100%", background: "none", border: "none", padding: "10px 14px", fontSize: 13, cursor: "pointer", textAlign: "left", color: "#4A4038" };
 
   return (
-    <div style={{ background: "#FFFFFF", border: "1px solid #E7E2DA", borderRadius: 14, padding: "14px 14px 12px 18px", position: "relative", display: "flex", flexDirection: "column", minHeight: 212, overflow: "hidden" }}>
+    <div style={{ background: "#FFFFFF", border: "1px solid #E7E2DA", borderRadius: 14, padding: "14px 14px 12px 18px", position: "relative", display: "flex", flexDirection: "column", minHeight: 180, overflow: "hidden" }}>
       <div style={{ position: "absolute", left: 0, top: 14, bottom: 14, width: 3, borderRadius: "0 3px 3px 0", background: akzent }} />
 
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 10, height: 58 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 10, minHeight: 58 }}>
         {w.bewertung ? (
           <div title="Bewertung" style={{ width: 34, height: 34, borderRadius: "50%", border: `1.5px solid ${bewertungFarbe(w.bewertung)}`, display: "grid", placeItems: "center", fontWeight: 700, fontSize: 13, color: bewertungFarbe(w.bewertung), flex: "0 0 auto", marginTop: 2 }}>
             {w.bewertung}
@@ -639,7 +644,7 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
         )}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="display-font" style={{ fontSize: 18, fontWeight: 600, lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{w.weinname || "—"}</div>
-          <div style={{ fontSize: 13, color: "#857D75", marginTop: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          <div style={{ fontSize: 13, color: "#857D75", marginTop: 3, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", lineHeight: 1.35 }}>
             <span style={{ fontWeight: 600, color: "#1E1B18" }}>{w.weingut}</span>
             {w.traube && <span>{` · ${w.traube}`}</span>}
             {w.jahrgang && <span>{` · ${w.jahrgang}`}</span>}
@@ -651,11 +656,15 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
         )}
       </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, fontSize: 13, color: "#857D75", marginTop: 6 }}>
-        <span>{[w.land, w.region].filter(Boolean).join(", ")}{w.alkohol ? ` · ${w.alkohol} % Vol.` : ""}</span>
-        {preis && <span style={{ fontWeight: 700, fontSize: 16, color: "#1E1B18", whiteSpace: "nowrap" }}>{preis}</span>}
+      <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginTop: 6 }}>
+        <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: "#857D75", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{[w.land, w.region].filter(Boolean).join(", ")}</span>
+        {preisZahl
+          ? <span style={{ fontWeight: 700, fontSize: 16, color: "#1E1B18", whiteSpace: "nowrap" }}>{preisZahl}</span>
+          : <span title="Kein verlässlicher Preis" style={{ fontWeight: 700, fontSize: 16, color: "#B7AB98", whiteSpace: "nowrap" }}>?? €</span>}
       </div>
-      {w.anzahlFlaschen && <div style={{ fontSize: 13, color: "#857D75", marginTop: 2 }}>🍾 {w.anzahlFlaschen} {String(w.anzahlFlaschen) === "1" ? "Flasche" : "Flaschen"}</div>}
+      <div style={{ fontSize: 13, color: "#857D75", marginTop: 2 }}>
+        {[w.alkohol && `${w.alkohol} % Vol.`, w.anzahlFlaschen && `🍾 ${w.anzahlFlaschen} ${String(w.anzahlFlaschen) === "1" ? "Flasche" : "Flaschen"}`].filter(Boolean).join(" · ")}
+      </div>
 
       <div style={{ marginTop: "auto", paddingTop: 10, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
         {istMerkliste && <span style={{ ...pille, background: "#3F6E9E" }}>🔖 {w.merklisteArt === "kaufen" ? "Kaufen" : "Trinken"}</span>}
