@@ -74,8 +74,8 @@
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600;700&family=Inter:wght@400;500;600&display=swap');
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { margin: 0; padding: 0; background: #F5F0E6; }
-  body { font-family: 'Inter', system-ui, sans-serif; color: #2B2320; }
+  html, body { margin: 0; padding: 0; background: #F6F4F1; }
+  body { font-family: 'Inter', system-ui, sans-serif; color: #211D1A; }
   .display-font { font-family: 'Fraunces', Georgia, serif; }
   input, select, textarea {
     font-family: 'Inter', system-ui, sans-serif;
@@ -589,7 +589,6 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
   const [expanded, setExpanded] = useState(false);
   const [menuOffen, setMenuOffen] = useState(false);
   const [karteOffen, setKarteOffen] = useState(false);
-  const gps = gpsAusText(w.trinkortGPS);
   const menuRef = React.useRef(null);
   useEffect(() => {
     if (!menuOffen) return;
@@ -597,74 +596,80 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
     document.addEventListener("pointerdown", schliessen);
     return () => document.removeEventListener("pointerdown", schliessen);
   }, [menuOffen]);
+
   const hasMore = w.weinbeschreibung || w.speiseempfehlung || w.hintergrundgeschichte || w.regionBeschreibung;
-  const teaser = w.weinbeschreibung
-    ? w.weinbeschreibung.split(/(?<=[.!?])\s+/).slice(0, 1).join(" ")
-    : "";
+  const teaser = w.weinbeschreibung ? w.weinbeschreibung.split(/(?<=[.!?])\s+/).slice(0, 1).join(" ") : "";
+  const gps = gpsAusText(w.trinkortGPS);
   const istMerkliste = w.merkliste === "Ja";
-  const akzent = istMerkliste ? "#4A6FA5" : (TYP_COLORS[w.typ] || "#7A2038");
+  const akzent = istMerkliste ? "#3F6E9E" : (TYP_COLORS[w.typ] || "#7A2038");
   const online = Object.prototype.hasOwnProperty.call(ONLINE_BEZUGSQUELLEN, w.bezugsquelle);
   const preis = preisAnzeige(w.preis);
 
-  const chip = { display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, background: "#F4EEE2", color: "#4A4038", borderRadius: 999, padding: "3px 10px", lineHeight: 1.4 };
+  const chip = { display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, background: "#F4F1EC", color: "#4A4038", borderRadius: 999, padding: "3px 10px", lineHeight: 1.4 };
   const pille = { fontSize: 11, fontWeight: 600, color: "#FFFDF9", borderRadius: 999, padding: "2px 9px", lineHeight: 1.5 };
-  const iconBtn = { background: "none", border: "none", cursor: "pointer", padding: 4, display: "inline-flex", alignItems: "center", color: "#7A6F63" };
+  const aktion = { display: "grid", placeItems: "center", width: 32, height: 32, borderRadius: 10, background: "#F4F1EC", border: "none", cursor: "pointer", color: "#7A726B", padding: 0 };
   const menuBtn = { display: "flex", alignItems: "center", gap: 8, width: "100%", background: "none", border: "none", padding: "10px 14px", fontSize: 13, cursor: "pointer", textAlign: "left", color: "#4A4038" };
 
   return (
-    <div style={{ background: istMerkliste ? "#EEF4FB" : "#FFFDF9", border: `1px solid ${istMerkliste ? "#C9D9EE" : "#ECE3D2"}`, borderRadius: 16, padding: "0 16px 14px", position: "relative", overflow: "hidden", boxShadow: "0 1px 2px rgba(60,40,20,.05), 0 6px 18px rgba(60,40,20,.06)" }}>
-      <div style={{ height: 4, background: akzent, margin: "0 -16px 14px" }} />
+    <div style={{ background: istMerkliste ? "#EEF4FB" : "#FFFFFF", border: `1px solid ${istMerkliste ? "#C9D9EE" : "#E7E2DA"}`, borderRadius: 14, padding: "0 16px 14px", position: "relative", display: "flex", flexDirection: "column" }}>
+      <div style={{ height: 4, background: akzent, margin: "0 -16px 12px", borderRadius: "14px 14px 0 0" }} />
 
-      <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-        {w.etikettVorne && <LabelThumb src={w.etikettVorne} onClick={() => onImageClick(w.etikettVorne)} />}
+      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 6 }}>
+        <button onClick={() => onExpand(w)} title="Vollansicht öffnen" style={aktion}><Maximize2 size={15} /></button>
+        <button onClick={() => onToggleFavorit(w.id)} title="Favorit" style={{ ...aktion, color: w.favorit ? "#C9A961" : "#B9B0A3" }}><Star size={17} fill={w.favorit ? "#C9A961" : "none"} /></button>
+        <button onClick={() => onToggleFavoritBJ(w.id)} title="Favorit BJ" style={{ ...aktion, color: w.favoritBJ ? "#B0453F" : "#B9B0A3" }}><Heart size={16} fill={w.favoritBJ ? "#B0453F" : "none"} /></button>
+        <button onClick={() => onToggleMerkliste(w.id)} title={istMerkliste ? "Von der Merkliste nehmen" : "Auf die Merkliste"} style={{ ...aktion, fontSize: 15, opacity: istMerkliste ? 1 : 0.45 }}>🔖</button>
+        <div ref={menuRef} style={{ position: "relative" }}>
+          <button onClick={() => setMenuOffen((o) => !o)} title="Weitere Aktionen" style={{ ...aktion, fontSize: 18, lineHeight: 1 }}>⋯</button>
+          {menuOffen && (
+            <div style={{ position: "absolute", right: 0, top: 36, background: "#FFFFFF", border: "1px solid #E7E2DA", borderRadius: 10, boxShadow: "0 8px 20px rgba(60,40,20,.15)", zIndex: 5, minWidth: 150, overflow: "hidden" }}>
+              <button onClick={() => { setMenuOffen(false); onEdit(w); }} style={menuBtn}><Pencil size={14} /> Bearbeiten</button>
+              <button onClick={() => { setMenuOffen(false); onDelete(w.id); }} style={{ ...menuBtn, color: "#B0453F" }}><Trash2 size={14} /> Löschen</button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 12, alignItems: "flex-start", marginTop: 4 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="display-font" style={{ fontSize: 18, fontWeight: 600, lineHeight: 1.2 }}>{w.weinname || "—"}</div>
-          {w.traube && <div style={{ fontSize: 12.5, fontWeight: 600, color: akzent, letterSpacing: ".03em", marginTop: 3 }}>{w.traube}</div>}
-          <div style={{ fontSize: 13, color: "#4A3A30", marginTop: 3 }}>
-            <span style={{ fontWeight: 700 }}>{w.weingut}</span>
-            {w.jahrgang && <span style={{ color: "#A89C89" }}>{` · ${w.jahrgang}`}</span>}
+          <div className="display-font" style={{ fontSize: 20, fontWeight: 600, lineHeight: 1.15 }}>{w.weinname || "—"}</div>
+          {w.traube && <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: ".08em", textTransform: "uppercase", color: akzent, marginTop: 6 }}>{w.traube}</div>}
+          <div style={{ fontSize: 13.5, color: "#7A726B", marginTop: 4 }}>
+            <span style={{ fontWeight: 600, color: "#211D1A" }}>{w.weingut}</span>
+            {w.jahrgang && <span>{` · ${w.jahrgang}`}</span>}
           </div>
         </div>
+        {w.etikettVorne ? (
+          <img src={w.etikettVorne} alt="Etikett" onClick={() => onImageClick(w.etikettVorne)}
+            style={{ width: 64, height: 84, objectFit: "contain", borderRadius: 10, background: "#F4F1EC", cursor: "zoom-in", flex: "0 0 auto" }} />
+        ) : (
+          <div style={{ width: 64, height: 84, borderRadius: 10, border: "1px dashed #E7E2DA", flex: "0 0 auto" }} />
+        )}
+      </div>
+
+      <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", fontSize: 13, color: "#4A4038", marginTop: 12 }}>
+        {w.land && <span>{w.land}{w.region ? `, ${w.region}` : ""}</span>}
+        {preis && <span style={{ marginLeft: "auto", fontSize: 17, fontWeight: 700, color: "#7A2038" }}>{preis}</span>}
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", fontSize: 13, color: "#4A4038", marginTop: 4 }}>
+        {w.alkohol && <span>{w.alkohol}% Vol.</span>}
+        {w.anzahlFlaschen && <span>🍾 {w.anzahlFlaschen} {String(w.anzahlFlaschen) === "1" ? "Flasche" : "Flaschen"}</span>}
         {w.bewertung && (
-          <div title="Bewertung" style={{ width: 40, height: 40, borderRadius: "50%", border: `3px solid ${bewertungFarbe(w.bewertung)}`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14, color: bewertungFarbe(w.bewertung), flexShrink: 0 }}>
+          <div title="Bewertung" style={{ marginLeft: "auto", width: 40, height: 40, borderRadius: "50%", border: `3px solid ${bewertungFarbe(w.bewertung)}`, display: "grid", placeItems: "center", fontWeight: 700, fontSize: 14, color: bewertungFarbe(w.bewertung), flexShrink: 0 }}>
             {w.bewertung}
           </div>
         )}
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-          {w.typ && <span style={{ ...pille, background: TYP_COLORS[w.typ] || "#7A2038" }}>{w.typ}</span>}
-          {istMerkliste && <span style={{ ...pille, background: "#4A6FA5" }}>🔖 Merkliste</span>}
-        </div>
-        <div style={{ display: "flex", gap: 0, alignItems: "center" }}>
-          <button onClick={() => onExpand(w)} title="Vollansicht öffnen" style={iconBtn}><Maximize2 size={15} /></button>
-          <button onClick={() => onToggleFavorit(w.id)} title="Favorit" style={{ ...iconBtn, color: w.favorit ? "#C9A961" : "#D8CDB8" }}><Star size={19} fill={w.favorit ? "#C9A961" : "none"} /></button>
-          <button onClick={() => onToggleFavoritBJ(w.id)} title="Favorit BJ" style={{ ...iconBtn, color: w.favoritBJ ? "#B0453F" : "#D8CDB8" }}><Heart size={17} fill={w.favoritBJ ? "#B0453F" : "none"} /></button>
-          <button onClick={() => onToggleMerkliste(w.id)} title={istMerkliste ? "Von der Merkliste nehmen" : "Auf die Merkliste"} style={{ ...iconBtn, fontSize: 15, lineHeight: 1, opacity: istMerkliste ? 1 : 0.35 }}>🔖</button>
-          <div ref={menuRef} style={{ position: "relative" }}>
-            <button onClick={() => setMenuOffen((o) => !o)} title="Weitere Aktionen" style={{ ...iconBtn, fontSize: 18, lineHeight: 1, padding: "2px 8px" }}>⋯</button>
-            {menuOffen && (
-              <div style={{ position: "absolute", right: 0, top: 30, background: "#FFFDF9", border: "1px solid #E5DBC8", borderRadius: 10, boxShadow: "0 8px 20px rgba(60,40,20,.15)", zIndex: 5, minWidth: 150, overflow: "hidden" }}>
-                <button onClick={() => { setMenuOffen(false); onEdit(w); }} style={menuBtn}><Pencil size={14} /> Bearbeiten</button>
-                <button onClick={() => { setMenuOffen(false); onDelete(w.id); }} style={{ ...menuBtn, color: "#B0453F" }}><Trash2 size={14} /> Löschen</button>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px", fontSize: 13, color: "#4A4038", marginTop: 10, alignItems: "baseline" }}>
-        {w.land && <span>{w.land}{w.region ? `, ${w.region}` : ""}</span>}
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginTop: 10 }}>
+        {w.typ && <span style={{ ...pille, background: TYP_COLORS[w.typ] || "#7A2038" }}>{w.typ}</span>}
+        {istMerkliste && <span style={{ ...pille, background: "#3F6E9E" }}>🔖 Merkliste</span>}
         {w.trinkort && (gps ? (
           <button onClick={(e) => { e.stopPropagation(); setKarteOffen((o) => !o); }} title="Ort auf der Karte zeigen"
-            style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: "#7A2038", fontSize: 13, fontWeight: 600, textDecoration: "underline" }}>
+            style={{ ...chip, border: "none", cursor: "pointer", color: "#7A2038", fontWeight: 600 }}>
             📍 {w.trinkort} {karteOffen ? "▴" : "▾"}
           </button>
-        ) : <span>📍 {w.trinkort}</span>)}
-        {w.alkohol && <span>{w.alkohol}% Vol.</span>}
-        {w.anzahlFlaschen && <span>🍾 {w.anzahlFlaschen} {String(w.anzahlFlaschen) === "1" ? "Flasche" : "Flaschen"}</span>}
-        {preis && <span style={{ marginLeft: "auto", fontSize: 16, fontWeight: 700, color: "#7A2038" }}>{preis}</span>}
+        ) : <span style={chip}>📍 {w.trinkort}</span>)}
       </div>
 
       {karteOffen && gps && (() => {
@@ -704,7 +709,7 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
             </a>
           )}
           {w.alternativeBezugsquelle && (
-            <span style={{ ...chip, background: "#FFFDF9", border: "1px dashed #D8CDB8", color: w.bezugsquelle === "Restaurant/Weinbar" ? "#7A2038" : "#7A6F63" }}>
+            <span style={{ ...chip, background: "#FFFFFF", border: "1px dashed #D8CDB8", color: w.bezugsquelle === "Restaurant/Weinbar" ? "#7A2038" : "#7A726B" }}>
               {w.bezugsquelle === "Restaurant/Weinbar" ? "🔗 Online erhältlich bei: " : "🔗 Auch online bei: "}{w.alternativeBezugsquelle}
               <a href={buildAltSearchUrl(w)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
                 title={`${w.weinname || "Wein"} erneut suchen`} style={{ display: "inline-flex", alignItems: "center", textDecoration: "none" }}>🔎</a>
@@ -714,9 +719,7 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
       )}
 
       {w.bezugsquelle === "Restaurant/Weinbar" && w.nurVorOrtErhaeltlich === "Ja" && (
-        <div style={{ marginTop: 8, fontSize: 12.5, fontWeight: 600, color: "#B0453F" }}>
-          🚫 Nur vor Ort erhältlich – nicht online bestellbar
-        </div>
+        <div style={{ marginTop: 8, fontSize: 12.5, fontWeight: 600, color: "#B0453F" }}>🚫 Nur vor Ort erhältlich – nicht online bestellbar</div>
       )}
 
       {w.kritiker && w.typ !== "Sake" && (
@@ -734,7 +737,7 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
       )}
 
       {((w.typ === "Weiß" && w.cremig) || w.dekantieren === "Ja" || w.wiederkaufen) && (
-        <div style={{ marginTop: 10, fontSize: 12, color: "#7A6F63", display: "flex", flexWrap: "wrap", gap: "4px 12px" }}>
+        <div style={{ marginTop: 10, fontSize: 12, color: "#7A726B", display: "flex", flexWrap: "wrap", gap: "4px 12px" }}>
           {w.typ === "Weiß" && w.cremig && <span>🥛 Cremig: {w.cremig}</span>}
           {w.dekantieren === "Ja" && (
             <span>🫗 Dekantieren{w.dekantierzeit !== "" && w.dekantierzeit != null ? `: ${w.dekantierzeit} ${String(w.dekantierzeit) === "1" ? "Stunde" : "Stunden"} vorher` : ""}</span>
@@ -743,7 +746,7 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
         </div>
       )}
 
-      {w.notizen && <div style={{ marginTop: 8, fontSize: 12, fontStyle: "italic", color: "#7A6F63" }}>{w.notizen}</div>}
+      {w.notizen && <div style={{ marginTop: 8, fontSize: 12, fontStyle: "italic", color: "#7A726B" }}>{w.notizen}</div>}
 
       {!expanded && teaser && (
         <div style={{ marginTop: 8, fontSize: 12, color: "#A89C89" }}>{teaser}</div>
@@ -751,16 +754,16 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
 
       {expanded && (
         <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
-          {w.speiseempfehlung && <div style={{ fontSize: 12, color: "#7A6F63" }}>🍽️ Passt zu: {w.speiseempfehlung}</div>}
-          {w.weinbeschreibung && <div style={{ fontSize: 12, color: "#7A6F63" }}>{w.weinbeschreibung}</div>}
-          {w.regionBeschreibung && <div style={{ fontSize: 12, color: "#7A6F63" }}>📍 {w.regionBeschreibung}</div>}
-          {w.hintergrundgeschichte && <div style={{ fontSize: 12, color: "#7A6F63" }}>{w.hintergrundgeschichte}</div>}
+          {w.speiseempfehlung && <div style={{ fontSize: 12, color: "#7A726B" }}>🍽️ Passt zu: {w.speiseempfehlung}</div>}
+          {w.weinbeschreibung && <div style={{ fontSize: 12, color: "#7A726B" }}>{w.weinbeschreibung}</div>}
+          {w.regionBeschreibung && <div style={{ fontSize: 12, color: "#7A726B" }}>📍 {w.regionBeschreibung}</div>}
+          {w.hintergrundgeschichte && <div style={{ fontSize: 12, color: "#7A726B" }}>{w.hintergrundgeschichte}</div>}
         </div>
       )}
 
       {hasMore && (
         <button onClick={() => setExpanded((e) => !e)}
-          style={{ marginTop: 8, background: "none", border: "none", padding: 0, color: "#7A2038", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+          style={{ marginTop: 8, background: "none", border: "none", padding: 0, color: "#7A2038", fontSize: 12, fontWeight: 600, cursor: "pointer", textAlign: "left" }}>
           {expanded ? "Weniger anzeigen ▲" : "Mehr anzeigen ▼"}
         </button>
       )}
@@ -955,7 +958,13 @@ function Weinkeller({ onLogout }) {
       return;
     }
     setError("");
-    const wine = form.hinzugefuegt ? form : { ...form, hinzugefuegt: new Date().toISOString() };
+    // Verlauf der Trinkorte: bei jedem geänderten Ort wird ein Eintrag mit heutigem Datum angehängt
+    const verlauf = Array.isArray(form.trinkVerlauf) ? [...form.trinkVerlauf] : [];
+    if (form.trinkort && (verlauf.length === 0 || verlauf[verlauf.length - 1].ort !== form.trinkort)) {
+      verlauf.push({ datum: new Date().toISOString().slice(0, 10), ort: form.trinkort, gps: form.trinkortGPS || "", adresse: form.trinkortAdresse || "" });
+    }
+    const basis = form.hinzugefuegt ? form : { ...form, hinzugefuegt: new Date().toISOString() };
+    const wine = { ...basis, trinkVerlauf: verlauf };
     persistWine(wine);
     setShowForm(false);
   }
@@ -1078,7 +1087,7 @@ function Weinkeller({ onLogout }) {
       const stadt = a.city || a.town || a.village || "";
       const stadtteil = a.suburb || a.quarter || a.city_district || "";
       const trinkortNeu = stadtteil && stadt && stadtteil !== stadt ? `${stadt}-${stadtteil}` : (stadtteil || stadt);
-      setForm((f) => ({ ...f, trinkort: trinkortNeu || f.trinkort, trinkortGPS: `${lat.toFixed(5)}, ${lon.toFixed(5)}` }));
+      setForm((f) => ({ ...f, trinkort: f.trinkort || trinkortNeu, trinkortGPS: `${lat.toFixed(5)}, ${lon.toFixed(5)}` }));
       try {
         const query = `[out:json][timeout:10];(node(around:60,${lat},${lon})["amenity"~"^(restaurant|bar|cafe|pub|biergarten|wine_bar)$"]["name"];way(around:60,${lat},${lon})["amenity"~"^(restaurant|bar|cafe|pub|biergarten|wine_bar)$"]["name"];);out center tags 10;`;
         const o = await fetch("https://overpass-api.de/api/interpreter", { method: "POST", body: "data=" + encodeURIComponent(query) });
@@ -1356,33 +1365,33 @@ function Weinkeller({ onLogout }) {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#F5F0E6", fontFamily: "'Inter', system-ui, sans-serif", color: "#2B2320" }}>
+    <div style={{ minHeight: "100vh", background: "#F6F4F1", fontFamily: "'Inter', system-ui, sans-serif", color: "#211D1A" }}>
       <div style={{ maxWidth: 1400, margin: "0 auto", padding: "24px 16px 80px" }}>
         <div style={{ maxWidth: 720, margin: "0 auto" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <WineIcon size={26} color="#7A2038" />
-            <h1 className="display-font" style={{ fontSize: 28, fontWeight: 700, margin: 0 }}>
-              Weinkeller <span style={{ fontSize: 15, fontWeight: 600, color: "#B8935F", verticalAlign: "middle" }}>OJ</span>
-            </h1>
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <label style={{ display: "flex", alignItems: "center", gap: 6, background: "#FFFDF9", border: "1px solid #DDD2BE", borderRadius: 8, padding: "8px 12px", fontSize: 13, cursor: "pointer", margin: 0, textTransform: "none", letterSpacing: 0, color: "#2B2320", fontWeight: 500 }}>
-              <Upload size={15} /> Laden
-              <input type="file" accept=".xlsx,.xls" onChange={importExcel} style={{ display: "none" }} />
-            </label>
-            <button onClick={exportExcel}
-              style={{ display: "flex", alignItems: "center", gap: 6, background: dirty ? "#7A2038" : "#FFFDF9", color: dirty ? "#FFFDF9" : "#2B2320", border: "1px solid " + (dirty ? "#7A2038" : "#DDD2BE"), borderRadius: 8, padding: "8px 12px", fontSize: 13, cursor: "pointer" }}>
-              <Download size={15} /> Sichern
-            </button>
-            <button onClick={openNewForm} title="Wein hinzufügen"
-              style={{ display: "flex", alignItems: "center", gap: 6, background: "#7A2038", color: "#FFFDF9", border: "none", borderRadius: 8, padding: "8px 12px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-              <Plus size={15} /> Wein
-            </button>
-            <button onClick={onLogout} title="Abmelden"
-              style={{ display: "flex", alignItems: "center", gap: 6, background: "#FFFDF9", border: "1px solid #DDD2BE", borderRadius: 8, padding: "8px 10px", fontSize: 13, cursor: "pointer", color: "#7A6F63" }}>
-              <X size={15} />
-            </button>
+        <div style={{ marginBottom: 22 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+              <h1 className="display-font" style={{ fontSize: 28, fontWeight: 600, margin: 0, letterSpacing: "-0.01em" }}>Weinkeller</h1>
+              <span style={{ fontSize: 20, fontWeight: 600, color: "#7A2038" }}>OJ</span>
+            </div>
+            <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+              <label title="Laden" style={{ display: "flex", alignItems: "center", gap: 6, background: "#FFFFFF", border: "1px solid #E7E2DA", borderRadius: 10, padding: "0 12px", height: 40, fontSize: 13, cursor: "pointer", margin: 0, textTransform: "none", letterSpacing: 0, color: "#211D1A", fontWeight: 500 }}>
+                <Upload size={15} /> Laden
+                <input type="file" accept=".xlsx,.xls" onChange={importExcel} style={{ display: "none" }} />
+              </label>
+              <button onClick={exportExcel} title="Excel-Sicherung"
+                style={{ display: "flex", alignItems: "center", gap: 6, background: dirty ? "#7A2038" : "#FFFFFF", color: dirty ? "#FFFFFF" : "#211D1A", border: "1px solid " + (dirty ? "#7A2038" : "#E7E2DA"), borderRadius: 10, padding: "0 12px", height: 40, fontSize: 13, cursor: "pointer" }}>
+                <Download size={15} /> Sichern
+              </button>
+              <button onClick={openNewForm} title="Wein hinzufügen"
+                style={{ display: "flex", alignItems: "center", gap: 6, background: "#7A2038", color: "#FFFFFF", border: "none", borderRadius: 10, padding: "0 16px", height: 40, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+                <Plus size={16} /> Wein erfassen
+              </button>
+              <button onClick={onLogout} title="Abmelden"
+                style={{ display: "flex", alignItems: "center", justifyContent: "center", background: "#FFFFFF", border: "1px solid #E7E2DA", borderRadius: 10, width: 40, height: 40, cursor: "pointer", color: "#7A726B", padding: 0 }}>
+                <X size={15} />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1742,6 +1751,15 @@ function Weinkeller({ onLogout }) {
               )}
               {dw.wiederkaufen && <div style={{ marginTop: 6, fontSize: 14, color: "#7A6F63" }}>Wiederkaufen/-trinken: {dw.wiederkaufen}</div>}
 
+              {dw.trinkVerlauf && dw.trinkVerlauf.length > 0 && (
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "#7A6F63", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 6 }}>Getrunken in</div>
+                  {dw.trinkVerlauf.slice().reverse().map((v, i) => (
+                    <div key={i} style={{ fontSize: 14, color: "#4A4038", marginBottom: 4 }}>📍 {v.ort} <span style={{ color: "#A89C89" }}>· {v.datum}</span></div>
+                  ))}
+                </div>
+              )}
+
               {dw.notizen && (
                 <div style={{ marginTop: 16, fontSize: 15, fontStyle: "italic", color: "#4A4038", lineHeight: 1.5 }}>{dw.notizen}</div>
               )}
@@ -1815,6 +1833,7 @@ function Weinkeller({ onLogout }) {
             })()}
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div style={{ gridColumn: "1 / -1", fontFamily: "'Fraunces', Georgia, serif", fontSize: 17, fontWeight: 600, margin: "16px 0 2px", paddingBottom: 6, borderBottom: "1px solid #E7E2DA" }}>Grunddaten</div>
               <div><label>Weingut</label><input value={form.weingut} onChange={(e) => setForm({ ...form, weingut: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.weingut)} /></div>
               <div><label>Weinname</label><input value={form.weinname} onChange={(e) => setForm({ ...form, weinname: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.weinname)} /></div>
               <div><label>Land</label><input value={form.land} onChange={(e) => setForm({ ...form, land: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.land)} /></div>
@@ -1836,6 +1855,7 @@ function Weinkeller({ onLogout }) {
               <div><label>SMV (Sake-Meter-Value)</label><input placeholder="z. B. +3" value={form.sakeSMV} onChange={(e) => setForm({ ...form, sakeSMV: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.sakeSMV)} /></div>
               <div><label>Trinktemperatur</label><input placeholder="z. B. gekühlt, 10–14 °C" value={form.sakeTrinktemp} onChange={(e) => setForm({ ...form, sakeTrinktemp: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.sakeTrinktemp)} /></div>
               </>)}
+              <div style={{ gridColumn: "1 / -1", fontFamily: "'Fraunces', Georgia, serif", fontSize: 17, fontWeight: 600, margin: "16px 0 2px", paddingBottom: 6, borderBottom: "1px solid #E7E2DA" }}>Weinprofil</div>
               {form.typ !== "Süßwein" && (<div>
                 <label>Säure (1–5)</label>
                 <select value={form.saeure} onChange={(e) => setForm({ ...form, saeure: e.target.value ? parseInt(e.target.value, 10) : "" })} style={leerStil(form.saeure)}>
@@ -1879,6 +1899,7 @@ function Weinkeller({ onLogout }) {
                   <input placeholder="z. B. Wine Advocate 94 · Suckling 93 (Quelle)" value={form.kritiker} onChange={(e) => setForm({ ...form, kritiker: e.target.value })} onFocus={alleMarkieren} style={{}} />
                 </div>
               )}
+              <div style={{ gridColumn: "1 / -1", fontFamily: "'Fraunces', Georgia, serif", fontSize: 17, fontWeight: 600, margin: "16px 0 2px", paddingBottom: 6, borderBottom: "1px solid #E7E2DA" }}>Bezug</div>
               <div><label>Bezugsquelle</label>
                 <select value={form.bezugsquelle} onChange={(e) => setForm({ ...form, bezugsquelle: e.target.value })} style={leerStilNutzer(form.bezugsquelle)}>
                   <option value=""></option>
@@ -1927,6 +1948,54 @@ function Weinkeller({ onLogout }) {
                 <label>Link zum Angebot (Händler)</label>
                 <input placeholder="https://…" value={form.link} onChange={(e) => setForm({ ...form, link: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.link)} />
               </div>
+              <div style={{ gridColumn: "1 / -1", fontFamily: "'Fraunces', Georgia, serif", fontSize: 17, fontWeight: 600, margin: "16px 0 2px", paddingBottom: 6, borderBottom: "1px solid #E7E2DA" }}>Ort</div>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label>Getrunken in (Ort)</label>
+                {knownOrte.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
+                    <span style={{ fontSize: 12, color: "#7A6F63", alignSelf: "center" }}>Gespeicherte Orte:</span>
+                    {knownOrte.map((o) => (
+                      <button key={o.trinkort} type="button" onClick={() => gespeicherterOrtWaehlen(o.trinkort)}
+                        style={{ background: form.trinkort === o.trinkort ? "#7A2038" : "#FFFDF9", color: form.trinkort === o.trinkort ? "#FFFDF9" : "#4A4038", border: "1px solid #DDD2BE", borderRadius: 999, padding: "4px 10px", fontSize: 12, cursor: "pointer" }}>
+                        {o.restaurantName ? `${o.restaurantName}, ${o.trinkort}` : o.trinkort}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <div style={{ display: "flex", gap: 6 }}>
+                  <input placeholder="z. B. Hamburg-Eppendorf, Restaurant Rote Wand" value={form.trinkort} onChange={(e) => setForm({ ...form, trinkort: e.target.value })} onFocus={alleMarkieren} style={{ flex: 1, minWidth: 0, ...leerStil(form.trinkort) }} />
+                  {form.trinkort && (
+                    <button type="button" title="Ort leeren" onClick={() => setForm({ ...form, trinkort: "" })}
+                      style={{ background: "#FFFFFF", border: "1px solid #E7E2DA", borderRadius: 8, padding: "0 12px", cursor: "pointer", color: "#7A726B", fontSize: 14 }}>✕</button>
+                  )}
+                </div>
+              </div>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label>Adresse (für Ort und Karte)</label>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <input placeholder="z. B. Ohlsdorfer Str. 2, 22299 Hamburg" value={form.trinkortAdresse} onChange={(e) => setForm({ ...form, trinkortAdresse: e.target.value })} onFocus={alleMarkieren} style={{ flex: 1, ...leerStil(form.trinkortAdresse) }} />
+                  <button type="button" onClick={ortErmitteln} disabled={ortSuche.busy} style={{ background: "#EFE6D3", border: "1px solid #DDD2BE", borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: ortSuche.busy ? "default" : "pointer", whiteSpace: "nowrap" }}>📍 Ort ermitteln</button>
+                </div>
+                {gpsAusText(form.trinkortGPS) && (
+                  <button type="button" onClick={() => ortAusGps(form.trinkortGPS)} disabled={ortSuche.busy}
+                    style={{ marginTop: 6, background: "none", border: "none", padding: 0, color: "#7A2038", fontSize: 12, fontWeight: 600, cursor: "pointer", textDecoration: "underline" }}>
+                    📍 Aus GPS-Koordinaten ermitteln (ohne Adresse)
+                  </button>
+                )}
+                {ortSuche.msg && <div style={{ fontSize: 12, color: "#7A6F63", marginTop: 6 }}>{ortSuche.msg}</div>}
+                {ortSuche.kandidaten.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}>
+                    {ortSuche.kandidaten.map((k) => (
+                      <button key={k.name} type="button" onClick={() => gastronomieWaehlen(k)} style={{ background: "#FFFDF9", border: "1px solid #DDD2BE", borderRadius: 999, padding: "4px 10px", fontSize: 12, cursor: "pointer" }}>{k.name}{k.website ? " 🌐" : ""}</button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label>GPS-Koordinaten (Breite, Länge), optional</label>
+                <input placeholder="z. B. 53.5511, 9.9937" value={form.trinkortGPS} onChange={(e) => setForm({ ...form, trinkortGPS: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.trinkortGPS)} />
+              </div>
+              <div style={{ gridColumn: "1 / -1", fontFamily: "'Fraunces', Georgia, serif", fontSize: 17, fontWeight: 600, margin: "16px 0 2px", paddingBottom: 6, borderBottom: "1px solid #E7E2DA" }}>Nachkauf</div>
               <div>
                 <label>Händler-Jahrgang (anderer Jahrgang)</label>
                 <input placeholder="z. B. 2023" value={form.haendlerJahrgang} onChange={(e) => setForm({ ...form, haendlerJahrgang: e.target.value })} onFocus={alleMarkieren} style={{}} />
@@ -1946,6 +2015,7 @@ function Weinkeller({ onLogout }) {
                 <label>Weitere Jahrgänge online (ein Eintrag pro Zeile: Jahrgang · Händler · Preis · Link)</label>
                 <textarea rows={2} value={form.weitereJahrgaenge} onChange={(e) => setForm({ ...form, weitereJahrgaenge: e.target.value })} onFocus={alleMarkieren} placeholder={"2023 · Tesdorpf · 34,90 · https://…"} style={{}} />
               </div>
+              <div style={{ gridColumn: "1 / -1", fontFamily: "'Fraunces', Georgia, serif", fontSize: 17, fontWeight: 600, margin: "16px 0 2px", paddingBottom: 6, borderBottom: "1px solid #E7E2DA" }}>Persönlich</div>
               <div>
                 <label>Merkliste</label>
                 <button type="button" onClick={() => setForm({ ...form, merkliste: form.merkliste === "Ja" ? "" : "Ja" })} style={{ display: "flex", alignItems: "center", gap: 6, background: form.merkliste === "Ja" ? "#EAF1FA" : "#FFFDF9", border: form.merkliste === "Ja" ? "1px solid #4A6FA5" : "1px solid #DDD2BE", borderRadius: 8, padding: "8px 10px", cursor: "pointer", width: "100%" }}>🔖 {form.merkliste === "Ja" ? "Auf der Merkliste (noch nicht getrunken)" : "Auf die Merkliste (noch nicht getrunken)"}</button>
@@ -1994,6 +2064,13 @@ function Weinkeller({ onLogout }) {
                 </button>
               </div>
               </>)}
+              {form.merkliste !== "Ja" && (
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label>Notizen (eure eigenen Eindrücke)</label>
+                <textarea rows={2} value={form.notizen} onChange={(e) => setForm({ ...form, notizen: e.target.value })} onFocus={alleMarkieren} />
+              </div>
+              )}
+              <div style={{ gridColumn: "1 / -1", fontFamily: "'Fraunces', Georgia, serif", fontSize: 17, fontWeight: 600, margin: "16px 0 2px", paddingBottom: 6, borderBottom: "1px solid #E7E2DA" }}>Beschreibung</div>
               <div style={{ gridColumn: "1 / -1" }}>
                 <label>Weinbeschreibung (eigene Zusammenfassung, nicht wörtlich kopiert)</label>
                 <textarea rows={2} value={form.weinbeschreibung} onChange={(e) => setForm({ ...form, weinbeschreibung: e.target.value })} onFocus={alleMarkieren} placeholder="Kurz: Charakter, Aromen, Struktur" style={leerStil(form.weinbeschreibung)} />
@@ -2010,47 +2087,7 @@ function Weinkeller({ onLogout }) {
                 <label>Hintergrundgeschichte</label>
                 <textarea rows={2} value={form.hintergrundgeschichte} onChange={(e) => setForm({ ...form, hintergrundgeschichte: e.target.value })} onFocus={alleMarkieren} placeholder="Winzergeschichte, Produktionsdetails, Anekdoten" style={leerStil(form.hintergrundgeschichte)} />
               </div>
-              {form.merkliste !== "Ja" && (
-              <div style={{ gridColumn: "1 / -1" }}>
-                <label>Notizen (eure eigenen Eindrücke)</label>
-                <textarea rows={2} value={form.notizen} onChange={(e) => setForm({ ...form, notizen: e.target.value })} onFocus={alleMarkieren} />
-              </div>
-              )}
-              <div style={{ gridColumn: "1 / -1" }}>
-                <label>Getrunken in (Ort)</label>
-                {knownOrte.length > 0 && (
-                  <select value="" onChange={(e) => e.target.value && gespeicherterOrtWaehlen(e.target.value)} style={{ marginBottom: 6 }}>
-                    <option value="">Gespeicherten Ort wählen …</option>
-                    {knownOrte.map((o) => <option key={o.trinkort} value={o.trinkort}>{o.trinkort}{o.restaurantName ? ` (${o.restaurantName})` : ""}</option>)}
-                  </select>
-                )}
-                <input placeholder="z. B. Hamburg-Eppendorf, Restaurant Rote Wand" value={form.trinkort} onChange={(e) => setForm({ ...form, trinkort: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.trinkort)} />
-              </div>
-              <div style={{ gridColumn: "1 / -1" }}>
-                <label>Adresse (für Ort und Karte)</label>
-                <div style={{ display: "flex", gap: 6 }}>
-                  <input placeholder="z. B. Ohlsdorfer Str. 2, 22299 Hamburg" value={form.trinkortAdresse} onChange={(e) => setForm({ ...form, trinkortAdresse: e.target.value })} onFocus={alleMarkieren} style={{ flex: 1, ...leerStil(form.trinkortAdresse) }} />
-                  <button type="button" onClick={ortErmitteln} disabled={ortSuche.busy} style={{ background: "#EFE6D3", border: "1px solid #DDD2BE", borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: ortSuche.busy ? "default" : "pointer", whiteSpace: "nowrap" }}>📍 Ort ermitteln</button>
-                </div>
-                {gpsAusText(form.trinkortGPS) && (
-                  <button type="button" onClick={() => ortAusGps(form.trinkortGPS)} disabled={ortSuche.busy}
-                    style={{ marginTop: 6, background: "none", border: "none", padding: 0, color: "#7A2038", fontSize: 12, fontWeight: 600, cursor: "pointer", textDecoration: "underline" }}>
-                    📍 Aus GPS-Koordinaten ermitteln (ohne Adresse)
-                  </button>
-                )}
-                {ortSuche.msg && <div style={{ fontSize: 12, color: "#7A6F63", marginTop: 6 }}>{ortSuche.msg}</div>}
-                {ortSuche.kandidaten.length > 0 && (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}>
-                    {ortSuche.kandidaten.map((k) => (
-                      <button key={k.name} type="button" onClick={() => gastronomieWaehlen(k)} style={{ background: "#FFFDF9", border: "1px solid #DDD2BE", borderRadius: 999, padding: "4px 10px", fontSize: 12, cursor: "pointer" }}>{k.name}{k.website ? " 🌐" : ""}</button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div style={{ gridColumn: "1 / -1" }}>
-                <label>GPS-Koordinaten (Breite, Länge), optional</label>
-                <input placeholder="z. B. 53.5511, 9.9937" value={form.trinkortGPS} onChange={(e) => setForm({ ...form, trinkortGPS: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.trinkortGPS)} />
-              </div>
+              <div style={{ gridColumn: "1 / -1", fontFamily: "'Fraunces', Georgia, serif", fontSize: 17, fontWeight: 600, margin: "16px 0 2px", paddingBottom: 6, borderBottom: "1px solid #E7E2DA" }}>Etikett</div>
               <div>
                 <label>Etikett vorne</label>
                 <div style={{ display: "flex", gap: 6 }}>
