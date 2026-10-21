@@ -263,6 +263,7 @@ const FIELD_MAP = {
   "website weinbar": "restaurantWebsite", "webseite weinbar": "restaurantWebsite", "weinbar-website": "restaurantWebsite",
   koordinaten: "trinkortGPS", gps: "trinkortGPS", "gps-koordinaten": "trinkortGPS", "gps koordinaten": "trinkortGPS", "koordinaten (gps)": "trinkortGPS", standort: "trinkortGPS",
   adresse: "trinkortAdresse", "trinkort-adresse": "trinkortAdresse", "adresse (ort)": "trinkortAdresse",
+  website: "restaurantWebsite", webseite: "restaurantWebsite",
   trinkort: "trinkort", "getrunken in": "trinkort", "ort (getrunken)": "trinkort", aufnahmeort: "trinkort", "aufnahmeort (exif)": "trinkort",
 };
 
@@ -942,6 +943,9 @@ function Weinkeller({ onLogout }) {
       }
       return merged;
     });
+    if (parsed.trinkortGPS && gpsAusText(parsed.trinkortGPS)) {
+      ortAusGps(parsed.trinkortGPS);
+    }
     setQuickApplied(true);
   }
 
@@ -1019,6 +1023,44 @@ function Weinkeller({ onLogout }) {
   function gastronomieWaehlen(k) {
     setForm((f) => ({ ...f, restaurantName: k.name, restaurantWebsite: k.website || f.restaurantWebsite }));
     setOrtSuche({ busy: false, msg: `Übernommen: ${k.name}`, kandidaten: [] });
+  }
+
+  // Benannte Gastronomie rund um einen Punkt (OpenStreetMap, Overpass)
+  async function gastronomieSuche(lat, lon) {
+    const query = `[out:json][timeout:10];(node(around:60,${lat},${lon})["amenity"~"^(restaurant|bar|cafe|pub|biergarten|wine_bar)$"]["name"];way(around:60,${lat},${lon})["amenity"~"^(restaurant|bar|cafe|pub|biergarten|wine_bar)$"]["name"];);out center tags 10;`;
+    const o = await fetch("https://overpass-api.de/api/interpreter", { method: "POST", body: "data=" + encodeURIComponent(query) });
+    const oj = await o.json();
+    const seen = new Set();
+    return (oj.elements || [])
+      .map((e) => ({ name: e.tags.name, website: e.tags.website || e.tags["contact:website"] || "" }))
+      .filter((k) => k.name && !seen.has(k.name) && seen.add(k.name));
+  }
+
+  // Ort aus GPS-Koordinaten (z. B. aus dem Foto-EXIF): Stadt/Stadtteil, Adresse und Gastronomie in der Nähe
+  async function ortAusGps(gpsText) {
+    const pos = gpsAusText(gpsText);
+    if (!pos) return;
+    const [lat, lon] = pos;
+    setOrtSuche({ busy: true, msg: "Ort wird aus den GPS-Daten ermittelt …", kandidaten: [] });
+    try {
+      const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&addressdetails=1&zoom=18&lat=${lat}&lon=${lon}`, { headers: { "Accept-Language": "de" } });
+      const d = await r.json();
+      const a = d.address || {};
+      const stadt = a.city || a.town || a.village || "";
+      const stadtteil = a.suburb || a.quarter || a.city_district || "";
+      const trinkortNeu = stadtteil && stadt && stadtteil !== stadt ? `${stadt}-${stadtteil}` : (stadtteil || stadt);
+      const strasse = [a.road, a.house_number].filter(Boolean).join(" ");
+      const adresseNeu = [strasse, [a.postcode, stadt].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+      setForm((f) => ({ ...f, trinkort: f.trinkort || trinkortNeu, trinkortAdresse: f.trinkortAdresse || adresseNeu, trinkortGPS: f.trinkortGPS || `${lat.toFixed(5)}, ${lon.toFixed(5)}` }));
+      try {
+        const kandidaten = await gastronomieSuche(lat, lon);
+        setOrtSuche({ busy: false, msg: kandidaten.length ? "Gastronomie in der Nähe, bitte auswählen:" : "Ort gefunden. Keine benannte Gastronomie in der Nähe.", kandidaten });
+      } catch (err) {
+        setOrtSuche({ busy: false, msg: "Ort gefunden, aber die Gastronomie-Suche ist gerade nicht erreichbar.", kandidaten: [] });
+      }
+    } catch (err) {
+      setOrtSuche({ busy: false, msg: "Ort aus den GPS-Daten nicht ermittelbar (keine Verbindung).", kandidaten: [] });
+    }
   }
 
   // Adresse über OpenStreetMap (Nominatim) suchen, dann benannte Gastronomie in der Nähe (Overpass) auflisten
@@ -1990,6 +2032,12 @@ function Weinkeller({ onLogout }) {
                   <input placeholder="z. B. Ohlsdorfer Str. 2, 22299 Hamburg" value={form.trinkortAdresse} onChange={(e) => setForm({ ...form, trinkortAdresse: e.target.value })} onFocus={alleMarkieren} style={{ flex: 1, ...leerStil(form.trinkortAdresse) }} />
                   <button type="button" onClick={ortErmitteln} disabled={ortSuche.busy} style={{ background: "#EFE6D3", border: "1px solid #DDD2BE", borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: ortSuche.busy ? "default" : "pointer", whiteSpace: "nowrap" }}>📍 Ort ermitteln</button>
                 </div>
+                {gpsAusText(form.trinkortGPS) && (
+                  <button type="button" onClick={() => ortAusGps(form.trinkortGPS)} disabled={ortSuche.busy}
+                    style={{ marginTop: 6, background: "none", border: "none", padding: 0, color: "#7A2038", fontSize: 12, fontWeight: 600, cursor: "pointer", textDecoration: "underline" }}>
+                    📍 Aus GPS-Koordinaten ermitteln (ohne Adresse)
+                  </button>
+                )}
                 {ortSuche.msg && <div style={{ fontSize: 12, color: "#7A6F63", marginTop: 6 }}>{ortSuche.msg}</div>}
                 {ortSuche.kandidaten.length > 0 && (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}>
