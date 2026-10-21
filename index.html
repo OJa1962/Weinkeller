@@ -95,7 +95,7 @@
   #root { min-height: 100vh; }
   .wine-grid { display: flex; flex-direction: column; gap: 10px; }
   @media (min-width: 900px) {
-    .wine-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; align-items: start; }
+    .wine-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; align-items: stretch; }
   }
 </style>
 </head>
@@ -611,7 +611,7 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
   const menuBtn = { display: "flex", alignItems: "center", gap: 8, width: "100%", background: "none", border: "none", padding: "10px 14px", fontSize: 13, cursor: "pointer", textAlign: "left", color: "#4A4038" };
 
   return (
-    <div style={{ background: istMerkliste ? "#EEF4FB" : "#FFFFFF", border: `1px solid ${istMerkliste ? "#C9D9EE" : "#E7E2DA"}`, borderRadius: 14, padding: "0 16px 14px", position: "relative", display: "flex", flexDirection: "column" }}>
+    <div style={{ background: istMerkliste ? "#EEF4FB" : "#FFFFFF", border: `1px solid ${istMerkliste ? "#C9D9EE" : "#E7E2DA"}`, borderRadius: 14, padding: "0 16px 14px", position: "relative", display: "flex", flexDirection: "column", minHeight: 250 }}>
       <div style={{ height: 4, background: akzent, margin: "0 -16px 12px", borderRadius: "14px 14px 0 0" }} />
 
       <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 6 }}>
@@ -685,87 +685,13 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
         );
       })()}
 
-      {(w.bezugsquelle || linkGueltig(w.link) || w.alternativeBezugsquelle || w.restaurantWebsite) && (
+      {linkGueltig(w.link) && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
-          {w.bezugsquelle && (
-            <span style={chip}>
-              Bezug: {w.bezugsquelle}{w.bezugsquelle === "Restaurant/Weinbar" && w.restaurantName ? ` (${w.restaurantName})` : ""}
-              {online && (
-                <a href={buildShopSearchUrl(w)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
-                  title={`${w.weinname || "Wein"} online suchen`} style={{ display: "inline-flex", alignItems: "center", color: "#7A2038", textDecoration: "none" }}>🔎</a>
-              )}
-            </span>
-          )}
-          {w.restaurantWebsite && (
-            <a href={/^https?:\/\//.test(w.restaurantWebsite) ? w.restaurantWebsite : "https://" + w.restaurantWebsite} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
-              style={{ ...chip, textDecoration: "none" }}>
-              🌐 {w.bezugsquelle === "Restaurant/Weinbar" && w.restaurantName ? w.restaurantName : "Restaurant"}
-            </a>
-          )}
-          {linkGueltig(w.link) && (
-            <a href={linkBereinigen(w.link)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
-              style={{ ...chip, background: "#7A2038", color: "#FFFDF9", fontWeight: 600, textDecoration: "none" }}>
-              🛒 Angebot bei {haendlerAusLink(w.link)}
-            </a>
-          )}
-          {w.alternativeBezugsquelle && (
-            <span style={{ ...chip, background: "#FFFFFF", border: "1px dashed #D8CDB8", color: w.bezugsquelle === "Restaurant/Weinbar" ? "#7A2038" : "#7A726B" }}>
-              {w.bezugsquelle === "Restaurant/Weinbar" ? "🔗 Online erhältlich bei: " : "🔗 Auch online bei: "}{w.alternativeBezugsquelle}
-              <a href={buildAltSearchUrl(w)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
-                title={`${w.weinname || "Wein"} erneut suchen`} style={{ display: "inline-flex", alignItems: "center", textDecoration: "none" }}>🔎</a>
-            </span>
-          )}
+          <a href={linkBereinigen(w.link)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+            style={{ ...chip, background: "#7A2038", color: "#FFFFFF", fontWeight: 600, textDecoration: "none" }}>
+            🛒 Angebot bei {haendlerAusLink(w.link)}
+          </a>
         </div>
-      )}
-
-      {w.bezugsquelle === "Restaurant/Weinbar" && w.nurVorOrtErhaeltlich === "Ja" && (
-        <div style={{ marginTop: 8, fontSize: 12.5, fontWeight: 600, color: "#B0453F" }}>🚫 Nur vor Ort erhältlich – nicht online bestellbar</div>
-      )}
-
-      {w.kritiker && w.typ !== "Sake" && (
-        <div style={{ marginTop: 8, fontSize: 12.5, color: "#4A4038" }}>🏆 {w.kritiker}</div>
-      )}
-      {w.typ === "Sake" && <SakeZeile w={w} />}
-
-      <WeitereJahrgaengeZeile w={w} />
-      <NachkaufZeile w={w} />
-
-      {w.saeure && w.typ !== "Süßwein" && (
-        <div style={{ marginTop: 10 }}>
-          <SaeureBar value={w.saeure} typ={w.typ} gl={w.saeureGL} />
-        </div>
-      )}
-
-      {((w.typ === "Weiß" && w.cremig) || w.dekantieren === "Ja" || w.wiederkaufen) && (
-        <div style={{ marginTop: 10, fontSize: 12, color: "#7A726B", display: "flex", flexWrap: "wrap", gap: "4px 12px" }}>
-          {w.typ === "Weiß" && w.cremig && <span>🥛 Cremig: {w.cremig}</span>}
-          {w.dekantieren === "Ja" && (
-            <span>🫗 Dekantieren{w.dekantierzeit !== "" && w.dekantierzeit != null ? `: ${w.dekantierzeit} ${String(w.dekantierzeit) === "1" ? "Stunde" : "Stunden"} vorher` : ""}</span>
-          )}
-          {w.wiederkaufen && <span>🔁 Wiederkaufen/-trinken: {w.wiederkaufen}</span>}
-        </div>
-      )}
-
-      {w.notizen && <div style={{ marginTop: 8, fontSize: 12, fontStyle: "italic", color: "#7A726B" }}>{w.notizen}</div>}
-
-      {!expanded && teaser && (
-        <div style={{ marginTop: 8, fontSize: 12, color: "#A89C89" }}>{teaser}</div>
-      )}
-
-      {expanded && (
-        <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
-          {w.speiseempfehlung && <div style={{ fontSize: 12, color: "#7A726B" }}>🍽️ Passt zu: {w.speiseempfehlung}</div>}
-          {w.weinbeschreibung && <div style={{ fontSize: 12, color: "#7A726B" }}>{w.weinbeschreibung}</div>}
-          {w.regionBeschreibung && <div style={{ fontSize: 12, color: "#7A726B" }}>📍 {w.regionBeschreibung}</div>}
-          {w.hintergrundgeschichte && <div style={{ fontSize: 12, color: "#7A726B" }}>{w.hintergrundgeschichte}</div>}
-        </div>
-      )}
-
-      {hasMore && (
-        <button onClick={() => setExpanded((e) => !e)}
-          style={{ marginTop: 8, background: "none", border: "none", padding: 0, color: "#7A2038", fontSize: 12, fontWeight: 600, cursor: "pointer", textAlign: "left" }}>
-          {expanded ? "Weniger anzeigen ▲" : "Mehr anzeigen ▼"}
-        </button>
       )}
     </div>
   );
@@ -1022,6 +948,13 @@ function Weinkeller({ onLogout }) {
   }, [wines]);
 
   const [ortSuche, setOrtSuche] = useState({ busy: false, msg: "", kandidaten: [] });
+
+  // Die häufigsten Länder als Schnellfilter
+  const haeufigeLaender = useMemo(() => {
+    const zaehler = {};
+    wines.forEach((w) => { if (w.land) zaehler[w.land] = (zaehler[w.land] || 0) + 1; });
+    return Object.entries(zaehler).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([name]) => name);
+  }, [wines]);
 
   function gespeicherterOrtWaehlen(name) {
     const o = knownOrte.find((x) => x.trinkort === name);
@@ -1415,24 +1348,24 @@ function Weinkeller({ onLogout }) {
           </div>
         )}
 
-        <div style={{ display: "flex", gap: 8, alignItems: "stretch", marginBottom: 8 }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "stretch", marginBottom: 12 }}>
           <input
             type="text"
             value={suchtext}
             onChange={(e) => setSuchtext(e.target.value)}
             placeholder="Suche: Weinname, Weingut, Rebsorte, Land, Notizen…"
-            style={{ flex: 1, minWidth: 0 }}
+            style={{ flex: 1, minWidth: 0, height: 46, borderRadius: 12, background: "#FFFFFF", border: "1px solid #E7E2DA", padding: "0 14px" }}
           />
           <button onClick={() => setFilterOffen(!filterOffen)}
-            style={{ flexShrink: 0, background: filterOffen || aktiveAnzahl ? "#7A2038" : "#FFFDF9", color: filterOffen || aktiveAnzahl ? "#FFFDF9" : "#2B2320", border: "1px solid #DDD2BE", borderRadius: 10, padding: "0 14px", fontSize: 14, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+            style={{ flexShrink: 0, background: filterOffen || aktiveAnzahl ? "#211D1A" : "#FFFFFF", color: filterOffen || aktiveAnzahl ? "#FFFFFF" : "#211D1A", border: "1px solid #E7E2DA", borderRadius: 12, padding: "0 16px", height: 46, fontSize: 14, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
             Filter{aktiveAnzahl ? ` (${aktiveAnzahl})` : ""} {filterOffen ? "▲" : "▼"}
           </button>
         </div>
 
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
           {[["Neuester Jahrgang", nurNeuesterJahrgang, setNurNeuesterJahrgang], ["Nur unbewertet", nurUnbewertet, setNurUnbewertet]].map(([label, aktiv, setter]) => (
             <button key={label} onClick={() => setter(!aktiv)}
-              style={{ background: aktiv ? "#7A2038" : "#FFFDF9", color: aktiv ? "#FFFDF9" : "#4A4038", border: "1px solid " + (aktiv ? "#7A2038" : "#DDD2BE"), borderRadius: 16, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+              style={{ background: aktiv ? "#211D1A" : "#FFFFFF", color: aktiv ? "#FFFFFF" : "#4A4038", border: "1px solid " + (aktiv ? "#211D1A" : "#E7E2DA"), borderRadius: 999, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
               {label}
             </button>
           ))}
@@ -1450,11 +1383,26 @@ function Weinkeller({ onLogout }) {
           </div>
         )}
 
-        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+        <div style={{ display: "flex", gap: 4, background: "#EDE9E3", borderRadius: 12, padding: 4, marginBottom: 16 }}>
           {[["alle", "Alle"], ["keller", "Keller"], ["merkliste", `🔖 Merkliste (${anzahlMerkliste})`]].map(([key, label]) => (
             <button key={key} onClick={() => setAnsicht(key)}
-              style={{ flex: 1, background: ansicht === key ? "#7A2038" : "#FFFDF9", color: ansicht === key ? "#FFFDF9" : "#2B2320", border: "1px solid " + (ansicht === key ? "#7A2038" : "#DDD2BE"), borderRadius: 10, padding: "9px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+              style={{ flex: 1, background: ansicht === key ? "#FFFFFF" : "transparent", color: ansicht === key ? "#211D1A" : "#7A726B", border: "none", boxShadow: ansicht === key ? "0 1px 3px rgba(60,40,20,.12)" : "none", borderRadius: 9, padding: "9px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
               {label}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4, marginBottom: 16 }}>
+          {[["Alle Typen", "Alle", filterTyp, setFilterTyp], ...["Rot", "Weiß", "Rosé", "Schaumwein", "Champagner", "PET NAT", "Süßwein", "Sake"].map((t) => [t, t, filterTyp, setFilterTyp])].map(([label, wert, aktuell, setter]) => (
+            <button key={label} onClick={() => setter(wert === "Alle" || aktuell === wert ? "Alle" : wert)}
+              style={{ flex: "0 0 auto", whiteSpace: "nowrap", background: aktuell === wert ? "#211D1A" : "#FFFFFF", color: aktuell === wert ? "#FFFFFF" : "#211D1A", border: "1px solid " + (aktuell === wert ? "#211D1A" : "#E7E2DA"), borderRadius: 999, padding: "7px 13px", fontSize: 13, cursor: "pointer" }}>
+              {label}
+            </button>
+          ))}
+          {haeufigeLaender.map((l) => (
+            <button key={l} onClick={() => setFilterLand(filterLand === l ? "Alle" : l)}
+              style={{ flex: "0 0 auto", whiteSpace: "nowrap", background: filterLand === l ? "#211D1A" : "#FFFFFF", color: filterLand === l ? "#FFFFFF" : "#211D1A", border: "1px solid " + (filterLand === l ? "#211D1A" : "#E7E2DA"), borderRadius: 999, padding: "7px 13px", fontSize: 13, cursor: "pointer" }}>
+              {l}
             </button>
           ))}
         </div>
