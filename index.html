@@ -280,6 +280,21 @@ function weingutNormalisiert(s) {
     .trim();
 }
 
+// Restaurant/Weinbar vor den Ort setzen, z. B. "Kimdo Weinbar, Hamburg-Winterhude"
+function mitRestaurant(ort, name) {
+  if (!name) return ort || "";
+  if (!ort) return name;
+  return ort.startsWith(name) ? ort : `${name}, ${ort}`;
+}
+
+// Beim Wechsel des Restaurants den alten Namen im Ort durch den neuen ersetzen
+function restaurantWechseln(ort, altName, neuName) {
+  let teil = ort || "";
+  if (altName && teil.startsWith(altName + ", ")) teil = teil.slice(altName.length + 2);
+  else if (altName && teil === altName) teil = "";
+  return mitRestaurant(teil, neuName);
+}
+
 // Liest "lat, lon" (Punkt oder Komma als Dezimalzeichen) und liefert [lat, lon] oder null.
 function gpsAusText(s) {
   const m = String(s || "").match(/(-?\d+(?:[.,]\d+)?)\s*[,;\s]\s*(-?\d+(?:[.,]\d+)?)/);
@@ -963,7 +978,12 @@ function Weinkeller({ onLogout }) {
   }
 
   function gastronomieWaehlen(k) {
-    setForm((f) => ({ ...f, restaurantName: k.name, restaurantWebsite: k.website || f.restaurantWebsite }));
+    setForm((f) => ({
+      ...f,
+      restaurantName: k.name,
+      restaurantWebsite: k.website || f.restaurantWebsite,
+      trinkort: restaurantWechseln(f.trinkort, f.restaurantName, k.name),
+    }));
     setOrtSuche({ busy: false, msg: `Übernommen: ${k.name}`, kandidaten: [] });
   }
 
@@ -993,7 +1013,7 @@ function Weinkeller({ onLogout }) {
       const trinkortNeu = stadtteil && stadt && stadtteil !== stadt ? `${stadt}-${stadtteil}` : (stadtteil || stadt);
       const strasse = [a.road, a.house_number].filter(Boolean).join(" ");
       const adresseNeu = [strasse, [a.postcode, stadt].filter(Boolean).join(" ")].filter(Boolean).join(", ");
-      setForm((f) => ({ ...f, trinkort: f.trinkort || trinkortNeu, trinkortAdresse: f.trinkortAdresse || adresseNeu, trinkortGPS: f.trinkortGPS || `${lat.toFixed(5)}, ${lon.toFixed(5)}` }));
+      setForm((f) => ({ ...f, trinkort: mitRestaurant(f.trinkort || trinkortNeu, f.restaurantName), trinkortAdresse: f.trinkortAdresse || adresseNeu, trinkortGPS: f.trinkortGPS || `${lat.toFixed(5)}, ${lon.toFixed(5)}` }));
       try {
         const kandidaten = await gastronomieSuche(lat, lon);
         setOrtSuche({ busy: false, msg: kandidaten.length ? "Gastronomie in der Nähe, bitte auswählen:" : "Ort gefunden. Keine benannte Gastronomie in der Nähe.", kandidaten });
@@ -1020,7 +1040,7 @@ function Weinkeller({ onLogout }) {
       const stadt = a.city || a.town || a.village || "";
       const stadtteil = a.suburb || a.quarter || a.city_district || "";
       const trinkortNeu = stadtteil && stadt && stadtteil !== stadt ? `${stadt}-${stadtteil}` : (stadtteil || stadt);
-      setForm((f) => ({ ...f, trinkort: f.trinkort || trinkortNeu, trinkortGPS: `${lat.toFixed(5)}, ${lon.toFixed(5)}` }));
+      setForm((f) => ({ ...f, trinkort: mitRestaurant(f.trinkort || trinkortNeu, f.restaurantName), trinkortGPS: `${lat.toFixed(5)}, ${lon.toFixed(5)}` }));
       try {
         const query = `[out:json][timeout:10];(node(around:60,${lat},${lon})["amenity"~"^(restaurant|bar|cafe|pub|biergarten|wine_bar)$"]["name"];way(around:60,${lat},${lon})["amenity"~"^(restaurant|bar|cafe|pub|biergarten|wine_bar)$"]["name"];);out center tags 10;`;
         const o = await fetch("https://overpass-api.de/api/interpreter", { method: "POST", body: "data=" + encodeURIComponent(query) });
@@ -1867,7 +1887,7 @@ function Weinkeller({ onLogout }) {
               {form.bezugsquelle === "Restaurant/Weinbar" && (
                 <div>
                   <label>Restaurant / Ort</label>
-                  <input list="restaurant-liste" placeholder="z. B. Chef's Table, Rote Wand" value={form.restaurantName} onChange={(e) => { const n = e.target.value; setForm({ ...form, restaurantName: n, restaurantWebsite: !form.restaurantWebsite && restaurantWebsites[n] ? restaurantWebsites[n] : form.restaurantWebsite }); }} onFocus={alleMarkieren} style={leerStilNutzer(form.restaurantName)} />
+                  <input list="restaurant-liste" placeholder="z. B. Chef's Table, Rote Wand" value={form.restaurantName} onChange={(e) => { const n = e.target.value; setForm({ ...form, restaurantName: n, trinkort: restaurantWechseln(form.trinkort, form.restaurantName, n), restaurantWebsite: !form.restaurantWebsite && restaurantWebsites[n] ? restaurantWebsites[n] : form.restaurantWebsite }); }} onFocus={alleMarkieren} style={leerStilNutzer(form.restaurantName)} />
                   <datalist id="restaurant-liste">
                     {restaurants.map((r) => <option key={r} value={r} />)}
                   </datalist>
@@ -1905,7 +1925,7 @@ function Weinkeller({ onLogout }) {
                     {knownOrte.map((o) => (
                       <button key={o.trinkort} type="button" onClick={() => gespeicherterOrtWaehlen(o.trinkort)}
                         style={{ background: form.trinkort === o.trinkort ? "#7A2038" : "#FFFDF9", color: form.trinkort === o.trinkort ? "#FFFDF9" : "#4A4038", border: "1px solid #DDD2BE", borderRadius: 999, padding: "4px 10px", fontSize: 12, cursor: "pointer" }}>
-                        {o.restaurantName ? `${o.restaurantName}, ${o.trinkort}` : o.trinkort}
+                        {o.trinkort}
                       </button>
                     ))}
                   </div>
