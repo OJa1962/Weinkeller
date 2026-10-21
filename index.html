@@ -1790,6 +1790,12 @@ function Weinkeller({ onLogout }) {
                 </label>
               </div>
               <div><label>Preis (€)</label><UnitInput unit="€" placeholder="z. B. 24,30 oder ca. 25" value={form.preis} onChange={(e) => setForm({ ...form, preis: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.preis)} /></div>
+              {form.merkliste === "Ja" && (
+                <div style={{ gridColumn: "1 / -1", fontSize: 13, color: "#4A6FA5" }}>
+                  🔖 Auf der Merkliste: Anzahl Flaschen, Bewertung, Wiederkaufen, Notizen und Favoriten werden nach dem Trinken ergänzt.
+                </div>
+              )}
+              {form.merkliste !== "Ja" && (<>
               <div><label>Anzahl Flaschen</label>
                 <select value={form.anzahlFlaschen} onChange={(e) => setForm({ ...form, anzahlFlaschen: e.target.value })} style={leerStilNutzer(form.anzahlFlaschen)}>
                   <option value=""></option>
@@ -1811,6 +1817,7 @@ function Weinkeller({ onLogout }) {
                   <option value=""></option><option>Ja</option><option>Nein</option><option>Vielleicht</option>
                 </select>
               </div>
+              </>)}
               <div style={{ gridColumn: "1 / -1" }}>
                 <label>Weinbeschreibung (eigene Zusammenfassung, nicht wörtlich kopiert)</label>
                 <textarea rows={2} value={form.weinbeschreibung} onChange={(e) => setForm({ ...form, weinbeschreibung: e.target.value })} onFocus={alleMarkieren} placeholder="Kurz: Charakter, Aromen, Struktur" style={leerStil(form.weinbeschreibung)} />
@@ -1827,10 +1834,12 @@ function Weinkeller({ onLogout }) {
                 <label>Hintergrundgeschichte</label>
                 <textarea rows={2} value={form.hintergrundgeschichte} onChange={(e) => setForm({ ...form, hintergrundgeschichte: e.target.value })} onFocus={alleMarkieren} placeholder="Winzergeschichte, Produktionsdetails, Anekdoten" style={leerStil(form.hintergrundgeschichte)} />
               </div>
+              {form.merkliste !== "Ja" && (
               <div style={{ gridColumn: "1 / -1" }}>
                 <label>Notizen (eure eigenen Eindrücke)</label>
                 <textarea rows={2} value={form.notizen} onChange={(e) => setForm({ ...form, notizen: e.target.value })} onFocus={alleMarkieren} />
               </div>
+              )}
               <div>
                 <label>Etikett vorne</label>
                 <div style={{ display: "flex", gap: 6 }}>
@@ -1845,6 +1854,11 @@ function Weinkeller({ onLogout }) {
                 </div>
               </div>
               <div>
+                <label>Merkliste</label>
+                <button type="button" onClick={() => setForm({ ...form, merkliste: form.merkliste === "Ja" ? "" : "Ja" })} style={{ display: "flex", alignItems: "center", gap: 6, background: form.merkliste === "Ja" ? "#EAF1FA" : "#FFFDF9", border: form.merkliste === "Ja" ? "1px solid #4A6FA5" : "1px solid #DDD2BE", borderRadius: 8, padding: "8px 10px", cursor: "pointer", width: "100%" }}>🔖 {form.merkliste === "Ja" ? "Auf der Merkliste (noch nicht getrunken)" : "Auf die Merkliste (noch nicht getrunken)"}</button>
+              </div>
+              {form.merkliste !== "Ja" && (<>
+              <div>
                 <label>Favorit</label>
                 <button type="button" onClick={() => setForm({ ...form, favorit: !form.favorit })} style={{ display: "flex", alignItems: "center", gap: 6, background: "#FFFDF9", border: "1px solid #DDD2BE", borderRadius: 8, padding: "8px 10px", cursor: "pointer", width: "100%" }}>
                   <Star size={22} color={form.favorit ? "#C9A961" : "#D8CDB8"} fill={form.favorit ? "#C9A961" : "none"} />
@@ -1853,12 +1867,12 @@ function Weinkeller({ onLogout }) {
               </div>
               <div>
                 <label>Favorit BJ</label>
-                <button type="button" onClick={() => setForm({ ...form, merkliste: form.merkliste === "Ja" ? "" : "Ja" })} style={{ display: "flex", alignItems: "center", gap: 6, background: "#FFFDF9", border: "1px solid #DDD2BE", borderRadius: 8, padding: "8px 10px", cursor: "pointer", width: "100%", marginBottom: 8 }}>🔖 Auf die Merkliste (noch nicht getrunken){form.merkliste === "Ja" ? " – aktiv" : ""}</button>
                 <button type="button" onClick={() => setForm({ ...form, favoritBJ: !form.favoritBJ })} style={{ display: "flex", alignItems: "center", gap: 6, background: "#FFFDF9", border: "1px solid #DDD2BE", borderRadius: 8, padding: "8px 10px", cursor: "pointer", width: "100%" }}>
                   <Heart size={20} color={form.favoritBJ ? "#B0453F" : "#D8CDB8"} fill={form.favoritBJ ? "#B0453F" : "none"} />
                   <span style={{ fontSize: 14 }}>{form.favoritBJ ? "Favorit BJ" : "Kein Favorit BJ"}</span>
                 </button>
               </div>
+              </>)}
             </div>
 
             {error && <div style={{ color: "#B0453F", fontSize: 13, marginTop: 10 }}>{error}</div>}
