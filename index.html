@@ -223,7 +223,7 @@ const EMPTY_FORM = {
   alternativeBezugsquelle: "", link: "", merkliste: "", weitereJahrgaenge: "", kritiker: "", sakeReis: "", sakePraefektur: "", sakeKlasse: "", sakePoliergrad: "", sakeSMV: "", sakeTrinktemp: "", haendlerJahrgang: "", nachkaufPreis: "", nachkaufLink: "", ausverkauft: "",
   bewertung: "", wiederkaufen: "", notizen: "", etikettVorne: "",
   favorit: false, favoritBJ: false, preis: "", anzahlFlaschen: "", weinbeschreibung: "", speiseempfehlung: "", hintergrundgeschichte: "", regionBeschreibung: "",
-  dekantieren: "", dekantierzeit: "", restaurantName: "", nurVorOrtErhaeltlich: "",
+  dekantieren: "", dekantierzeit: "", restaurantName: "", nurVorOrtErhaeltlich: "", trinkort: "",
 };
 
 const FIELD_MAP = {
@@ -258,6 +258,7 @@ const FIELD_MAP = {
   dekantierzeit: "dekantierzeit", "dekantierzeit (stunden)": "dekantierzeit", "dekantieren stunden": "dekantierzeit", "stunden dekantieren": "dekantierzeit",
   "restaurant": "restaurantName", "restaurant / ort": "restaurantName", "restaurant/ort": "restaurantName", ort: "restaurantName", restaurantname: "restaurantName",
   "nur vor ort erhältlich": "nurVorOrtErhaeltlich", "nur vor ort": "nurVorOrtErhaeltlich", nurvororterhaeltlich: "nurVorOrtErhaeltlich",
+  trinkort: "trinkort", "getrunken in": "trinkort", "ort (getrunken)": "trinkort", aufnahmeort: "trinkort", "aufnahmeort (exif)": "trinkort",
 };
 
 // Normalisiert einen Weingut-Namen für Vergleiche: entfernt Klammerzusätze (z.B. Rechtsform-Erklärungen)
@@ -570,125 +571,125 @@ function buildAltSearchUrl(w) {
 
 function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, onEdit, onDelete, onImageClick, onExpand }) {
   const [expanded, setExpanded] = useState(false);
+  const [menuOffen, setMenuOffen] = useState(false);
+  const menuRef = React.useRef(null);
+  useEffect(() => {
+    if (!menuOffen) return;
+    const schliessen = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOffen(false); };
+    document.addEventListener("pointerdown", schliessen);
+    return () => document.removeEventListener("pointerdown", schliessen);
+  }, [menuOffen]);
   const hasMore = w.weinbeschreibung || w.speiseempfehlung || w.hintergrundgeschichte || w.regionBeschreibung;
   const teaser = w.weinbeschreibung
     ? w.weinbeschreibung.split(/(?<=[.!?])\s+/).slice(0, 1).join(" ")
     : "";
+  const istMerkliste = w.merkliste === "Ja";
+  const akzent = istMerkliste ? "#4A6FA5" : (TYP_COLORS[w.typ] || "#7A2038");
+  const online = Object.prototype.hasOwnProperty.call(ONLINE_BEZUGSQUELLEN, w.bezugsquelle);
+  const preis = preisAnzeige(w.preis);
+
+  const chip = { display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, background: "#F4EEE2", color: "#4A4038", borderRadius: 999, padding: "3px 10px", lineHeight: 1.4 };
+  const pille = { fontSize: 11, fontWeight: 600, color: "#FFFDF9", borderRadius: 999, padding: "2px 9px", lineHeight: 1.5 };
+  const iconBtn = { background: "none", border: "none", cursor: "pointer", padding: 4, display: "inline-flex", alignItems: "center", color: "#7A6F63" };
+  const menuBtn = { display: "flex", alignItems: "center", gap: 8, width: "100%", background: "none", border: "none", padding: "10px 14px", fontSize: 13, cursor: "pointer", textAlign: "left", color: "#4A4038" };
 
   return (
-    <div style={{ background: w.merkliste === "Ja" ? "#EAF1FA" : "#FFFDF9", border: w.merkliste === "Ja" ? "1px solid #A9C0DE" : "1px solid #E5DBC8", borderRadius: 12, padding: 14, position: "relative", borderLeft: `5px solid ${w.merkliste === "Ja" ? "#4A6FA5" : (TYP_COLORS[w.typ] || "#7A2038")}` }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <div style={{ display: "flex", gap: 10 }}>
-          {w.etikettVorne && <LabelThumb src={w.etikettVorne} onClick={() => onImageClick(w.etikettVorne)} />}
-          <div>
-            <div className="display-font" style={{ fontSize: 17, fontWeight: 600 }}>{w.weinname || "—"}</div>
-            <div style={{ fontSize: 13.5 }}>
-              <span style={{ fontWeight: 700, color: "#4A3A30" }}>{w.weingut}</span>
-              {w.jahrgang && <span style={{ color: "#A89C89" }}>{` · ${w.jahrgang}`}</span>}
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
-              {w.typ && (
-                <span style={{ fontSize: 11, fontWeight: 600, color: "#FFFDF9", background: TYP_COLORS[w.typ] || "#7A2038", borderRadius: 4, padding: "1px 7px" }}>
-                  {w.typ}
-                </span>
-              )}
-              {w.merkliste === "Ja" && (
-                <span style={{ fontSize: 11, fontWeight: 600, color: "#FFFDF9", background: "#4A6FA5", borderRadius: 4, padding: "1px 7px" }}>🔖 Merkliste</span>
-              )}
-              {w.bewertung && (
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#FFFDF9", background: bewertungFarbe(w.bewertung), borderRadius: 4, padding: "1px 7px" }}>
-                  {w.bewertung}/10
-                </span>
-              )}
-            </div>
+    <div style={{ background: istMerkliste ? "#EEF4FB" : "#FFFDF9", border: `1px solid ${istMerkliste ? "#C9D9EE" : "#ECE3D2"}`, borderRadius: 16, padding: "0 16px 14px", position: "relative", overflow: "hidden", boxShadow: "0 1px 2px rgba(60,40,20,.05), 0 6px 18px rgba(60,40,20,.06)" }}>
+      <div style={{ height: 4, background: akzent, margin: "0 -16px 14px" }} />
+
+      <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+        {w.etikettVorne && <LabelThumb src={w.etikettVorne} onClick={() => onImageClick(w.etikettVorne)} />}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="display-font" style={{ fontSize: 18, fontWeight: 600, lineHeight: 1.2 }}>{w.weinname || "—"}</div>
+          {w.traube && <div style={{ fontSize: 12.5, fontWeight: 600, color: akzent, letterSpacing: ".03em", marginTop: 3 }}>{w.traube}</div>}
+          <div style={{ fontSize: 13, color: "#4A3A30", marginTop: 3 }}>
+            <span style={{ fontWeight: 700 }}>{w.weingut}</span>
+            {w.jahrgang && <span style={{ color: "#A89C89" }}>{` · ${w.jahrgang}`}</span>}
           </div>
         </div>
-        <div style={{ display: "flex", gap: 6 }}>
-          <button onClick={() => onExpand(w)} title="Vollansicht öffnen" style={{ background: "none", border: "none", cursor: "pointer", color: "#7A6F63" }}>
-            <Maximize2 size={15} />
-          </button>
-          <button onClick={() => onToggleFavorit(w.id)} style={{ background: "none", border: "none", cursor: "pointer", color: w.favorit ? "#C9A961" : "#D8CDB8" }}>
-            <Star size={24} fill={w.favorit ? "#C9A961" : "none"} />
-          </button>
-          <button onClick={() => onToggleFavoritBJ(w.id)} title="Favorit BJ" style={{ background: "none", border: "none", cursor: "pointer", color: w.favoritBJ ? "#B0453F" : "#D8CDB8" }}>
-            <Heart size={20} fill={w.favoritBJ ? "#B0453F" : "none"} />
-          </button>
-          <button onClick={() => onToggleMerkliste(w.id)} title={w.merkliste === "Ja" ? "Von der Merkliste nehmen" : "Auf die Merkliste"}
-            style={{ background: "none", border: "none", cursor: "pointer", fontSize: 15, lineHeight: 1, opacity: w.merkliste === "Ja" ? 1 : 0.35 }}>🔖</button>
-          <button onClick={() => onEdit(w)} style={{ background: "none", border: "none", cursor: "pointer", color: "#7A6F63" }}><Pencil size={15} /></button>
-          <button onClick={() => onDelete(w.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#B0453F" }}><Trash2 size={15} /></button>
+        {w.bewertung && (
+          <div title="Bewertung" style={{ width: 40, height: 40, borderRadius: "50%", border: `3px solid ${bewertungFarbe(w.bewertung)}`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14, color: bewertungFarbe(w.bewertung), flexShrink: 0 }}>
+            {w.bewertung}
+          </div>
+        )}
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+          {w.typ && <span style={{ ...pille, background: TYP_COLORS[w.typ] || "#7A2038" }}>{w.typ}</span>}
+          {istMerkliste && <span style={{ ...pille, background: "#4A6FA5" }}>🔖 Merkliste</span>}
+        </div>
+        <div style={{ display: "flex", gap: 0, alignItems: "center" }}>
+          <button onClick={() => onExpand(w)} title="Vollansicht öffnen" style={iconBtn}><Maximize2 size={15} /></button>
+          <button onClick={() => onToggleFavorit(w.id)} title="Favorit" style={{ ...iconBtn, color: w.favorit ? "#C9A961" : "#D8CDB8" }}><Star size={19} fill={w.favorit ? "#C9A961" : "none"} /></button>
+          <button onClick={() => onToggleFavoritBJ(w.id)} title="Favorit BJ" style={{ ...iconBtn, color: w.favoritBJ ? "#B0453F" : "#D8CDB8" }}><Heart size={17} fill={w.favoritBJ ? "#B0453F" : "none"} /></button>
+          <button onClick={() => onToggleMerkliste(w.id)} title={istMerkliste ? "Von der Merkliste nehmen" : "Auf die Merkliste"} style={{ ...iconBtn, fontSize: 15, lineHeight: 1, opacity: istMerkliste ? 1 : 0.35 }}>🔖</button>
+          <div ref={menuRef} style={{ position: "relative" }}>
+            <button onClick={() => setMenuOffen((o) => !o)} title="Weitere Aktionen" style={{ ...iconBtn, fontSize: 18, lineHeight: 1, padding: "2px 8px" }}>⋯</button>
+            {menuOffen && (
+              <div style={{ position: "absolute", right: 0, top: 30, background: "#FFFDF9", border: "1px solid #E5DBC8", borderRadius: 10, boxShadow: "0 8px 20px rgba(60,40,20,.15)", zIndex: 5, minWidth: 150, overflow: "hidden" }}>
+                <button onClick={() => { setMenuOffen(false); onEdit(w); }} style={menuBtn}><Pencil size={14} /> Bearbeiten</button>
+                <button onClick={() => { setMenuOffen(false); onDelete(w.id); }} style={{ ...menuBtn, color: "#B0453F" }}><Trash2 size={14} /> Löschen</button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 14px", fontSize: 13, color: "#4A4038", marginTop: 8 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px", fontSize: 13, color: "#4A4038", marginTop: 10, alignItems: "baseline" }}>
         {w.land && <span>{w.land}{w.region ? `, ${w.region}` : ""}</span>}
-        {w.traube && <span>{w.traube}</span>}
+        {w.trinkort && <span>📍 {w.trinkort}</span>}
         {w.alkohol && <span>{w.alkohol}% Vol.</span>}
-        {w.bezugsquelle && (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-            Bezug: {w.bezugsquelle}{w.bezugsquelle === "Restaurant/Weinbar" && w.restaurantName ? ` (${w.restaurantName})` : ""}
-            {Object.prototype.hasOwnProperty.call(ONLINE_BEZUGSQUELLEN, w.bezugsquelle) && (
-              <a href={buildShopSearchUrl(w)} target="_blank" rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                title={`${w.weinname || "Wein"} online suchen`}
-                style={{ display: "inline-flex", alignItems: "center", color: "#7A2038", textDecoration: "none" }}>
-                🔎
-              </a>
-            )}
-          </span>
-        )}
-        {preisAnzeige(w.preis) && <span>{preisAnzeige(w.preis)}</span>}
         {w.anzahlFlaschen && <span>🍾 {w.anzahlFlaschen} {String(w.anzahlFlaschen) === "1" ? "Flasche" : "Flaschen"}</span>}
+        {preis && <span style={{ marginLeft: "auto", fontSize: 16, fontWeight: 700, color: "#7A2038" }}>{preis}</span>}
       </div>
 
+      {(w.bezugsquelle || linkGueltig(w.link) || w.alternativeBezugsquelle) && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+          {w.bezugsquelle && (
+            <span style={chip}>
+              Bezug: {w.bezugsquelle}{w.bezugsquelle === "Restaurant/Weinbar" && w.restaurantName ? ` (${w.restaurantName})` : ""}
+              {online && (
+                <a href={buildShopSearchUrl(w)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                  title={`${w.weinname || "Wein"} online suchen`} style={{ display: "inline-flex", alignItems: "center", color: "#7A2038", textDecoration: "none" }}>🔎</a>
+              )}
+            </span>
+          )}
+          {linkGueltig(w.link) && (
+            <a href={linkBereinigen(w.link)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+              style={{ ...chip, background: "#7A2038", color: "#FFFDF9", fontWeight: 600, textDecoration: "none" }}>
+              🛒 Angebot bei {haendlerAusLink(w.link)}
+            </a>
+          )}
+          {w.alternativeBezugsquelle && (
+            <span style={{ ...chip, background: "#FFFDF9", border: "1px dashed #D8CDB8", color: w.bezugsquelle === "Restaurant/Weinbar" ? "#7A2038" : "#7A6F63" }}>
+              {w.bezugsquelle === "Restaurant/Weinbar" ? "🔗 Online erhältlich bei: " : "🔗 Auch online bei: "}{w.alternativeBezugsquelle}
+              <a href={buildAltSearchUrl(w)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                title={`${w.weinname || "Wein"} erneut suchen`} style={{ display: "inline-flex", alignItems: "center", textDecoration: "none" }}>🔎</a>
+            </span>
+          )}
+        </div>
+      )}
+
       {w.bezugsquelle === "Restaurant/Weinbar" && w.nurVorOrtErhaeltlich === "Ja" && (
-        <div style={{ marginTop: 6, fontSize: 12.5, fontWeight: 600, color: "#B0453F" }}>
+        <div style={{ marginTop: 8, fontSize: 12.5, fontWeight: 600, color: "#B0453F" }}>
           🚫 Nur vor Ort erhältlich – nicht online bestellbar
         </div>
       )}
 
       {w.kritiker && w.typ !== "Sake" && (
-        <div style={{ marginTop: 6, fontSize: 12.5, color: "#4A4038" }}>🏆 {w.kritiker}</div>
+        <div style={{ marginTop: 8, fontSize: 12.5, color: "#4A4038" }}>🏆 {w.kritiker}</div>
       )}
       {w.typ === "Sake" && <SakeZeile w={w} />}
-
-      {linkGueltig(w.link) && (
-        <div style={{ marginTop: 6, fontSize: 12.5, display: "flex", alignItems: "center", gap: 5 }}>
-          <a href={linkBereinigen(w.link)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
-            style={{ color: "#7A2038", fontWeight: 600, textDecoration: "underline" }}>🛒 Angebot bei {haendlerAusLink(w.link)}</a>
-        </div>
-      )}
 
       <WeitereJahrgaengeZeile w={w} />
       <NachkaufZeile w={w} />
 
-      {w.alternativeBezugsquelle && (
-        w.bezugsquelle === "Restaurant/Weinbar" ? (
-          <div style={{ marginTop: 6, fontSize: 12.5, fontWeight: 600, color: "#7A2038", display: "flex", alignItems: "center", gap: 5 }}>
-            🔗 Online erhältlich bei: {w.alternativeBezugsquelle}
-            <a href={buildAltSearchUrl(w)} target="_blank" rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              title={`${w.weinname || "Wein"} erneut suchen`}
-              style={{ display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
-              🔎
-            </a>
-          </div>
-        ) : (
-          <div style={{ marginTop: 6, fontSize: 12, color: "#A89C89", display: "flex", alignItems: "center", gap: 5 }}>
-            🔗 Auch online bei: {w.alternativeBezugsquelle}
-            <a href={buildAltSearchUrl(w)} target="_blank" rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              title={`${w.weinname || "Wein"} erneut suchen`}
-              style={{ display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
-              🔎
-            </a>
-          </div>
-        )
+      {w.saeure && w.typ !== "Süßwein" && (
+        <div style={{ marginTop: 10 }}>
+          <SaeureBar value={w.saeure} typ={w.typ} gl={w.saeureGL} />
+        </div>
       )}
-
-      <div style={{ marginTop: 10 }}>
-        {w.saeure && w.typ !== "Süßwein" && <SaeureBar value={w.saeure} typ={w.typ} gl={w.saeureGL} />}
-      </div>
 
       {((w.typ === "Weiß" && w.cremig) || w.dekantieren === "Ja" || w.wiederkaufen) && (
         <div style={{ marginTop: 10, fontSize: 12, color: "#7A6F63", display: "flex", flexWrap: "wrap", gap: "4px 12px" }}>
@@ -700,7 +701,6 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
         </div>
       )}
 
-      {/* Notizen: immer sichtbar, kurz, für private Vermerke */}
       {w.notizen && <div style={{ marginTop: 8, fontSize: 12, fontStyle: "italic", color: "#7A6F63" }}>{w.notizen}</div>}
 
       {!expanded && teaser && (
@@ -1860,6 +1860,10 @@ function Weinkeller({ onLogout }) {
                 <textarea rows={2} value={form.notizen} onChange={(e) => setForm({ ...form, notizen: e.target.value })} onFocus={alleMarkieren} />
               </div>
               )}
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label>Getrunken in (Ort)</label>
+                <input placeholder="z. B. Hamburg-Eppendorf, Restaurant Rote Wand" value={form.trinkort} onChange={(e) => setForm({ ...form, trinkort: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.trinkort)} />
+              </div>
               <div>
                 <label>Etikett vorne</label>
                 <div style={{ display: "flex", gap: 6 }}>
