@@ -223,7 +223,7 @@ const EMPTY_FORM = {
   alternativeBezugsquelle: "", link: "", merkliste: "", weitereJahrgaenge: "", kritiker: "", sakeReis: "", sakePraefektur: "", sakeKlasse: "", sakePoliergrad: "", sakeSMV: "", sakeTrinktemp: "", haendlerJahrgang: "", nachkaufPreis: "", nachkaufLink: "", ausverkauft: "",
   bewertung: "", wiederkaufen: "", notizen: "", etikettVorne: "",
   favorit: false, favoritBJ: false, preis: "", anzahlFlaschen: "", weinbeschreibung: "", speiseempfehlung: "", hintergrundgeschichte: "", regionBeschreibung: "",
-  dekantieren: "", dekantierzeit: "", restaurantName: "", nurVorOrtErhaeltlich: "", trinkort: "",
+  dekantieren: "", dekantierzeit: "", restaurantName: "", nurVorOrtErhaeltlich: "", trinkort: "", trinkortGPS: "", restaurantWebsite: "",
 };
 
 const FIELD_MAP = {
@@ -258,6 +258,10 @@ const FIELD_MAP = {
   dekantierzeit: "dekantierzeit", "dekantierzeit (stunden)": "dekantierzeit", "dekantieren stunden": "dekantierzeit", "stunden dekantieren": "dekantierzeit",
   "restaurant": "restaurantName", "restaurant / ort": "restaurantName", "restaurant/ort": "restaurantName", ort: "restaurantName", restaurantname: "restaurantName",
   "nur vor ort erhältlich": "nurVorOrtErhaeltlich", "nur vor ort": "nurVorOrtErhaeltlich", nurvororterhaeltlich: "nurVorOrtErhaeltlich",
+  "website restaurant": "restaurantWebsite", "restaurant-website": "restaurantWebsite", "restaurant website": "restaurantWebsite",
+  "webseite restaurant": "restaurantWebsite", "restaurant-webseite": "restaurantWebsite", "restaurant webseite": "restaurantWebsite",
+  "website weinbar": "restaurantWebsite", "webseite weinbar": "restaurantWebsite", "weinbar-website": "restaurantWebsite",
+  koordinaten: "trinkortGPS", gps: "trinkortGPS", "gps-koordinaten": "trinkortGPS", "gps koordinaten": "trinkortGPS", "koordinaten (gps)": "trinkortGPS", standort: "trinkortGPS",
   trinkort: "trinkort", "getrunken in": "trinkort", "ort (getrunken)": "trinkort", aufnahmeort: "trinkort", "aufnahmeort (exif)": "trinkort",
 };
 
@@ -272,6 +276,16 @@ function weingutNormalisiert(s) {
     .replace(/[.,]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+// Liest "lat, lon" (Punkt oder Komma als Dezimalzeichen) und liefert [lat, lon] oder null.
+function gpsAusText(s) {
+  const m = String(s || "").match(/(-?\d+(?:[.,]\d+)?)\s*[,;\s]\s*(-?\d+(?:[.,]\d+)?)/);
+  if (!m) return null;
+  const lat = parseFloat(m[1].replace(",", "."));
+  const lon = parseFloat(m[2].replace(",", "."));
+  if (isNaN(lat) || isNaN(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+  return [lat, lon];
 }
 
 function parseQuickText(text) {
@@ -572,6 +586,8 @@ function buildAltSearchUrl(w) {
 function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, onEdit, onDelete, onImageClick, onExpand }) {
   const [expanded, setExpanded] = useState(false);
   const [menuOffen, setMenuOffen] = useState(false);
+  const [karteOffen, setKarteOffen] = useState(false);
+  const gps = gpsAusText(w.trinkortGPS);
   const menuRef = React.useRef(null);
   useEffect(() => {
     if (!menuOffen) return;
@@ -638,13 +654,31 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px", fontSize: 13, color: "#4A4038", marginTop: 10, alignItems: "baseline" }}>
         {w.land && <span>{w.land}{w.region ? `, ${w.region}` : ""}</span>}
-        {w.trinkort && <span>📍 {w.trinkort}</span>}
+        {w.trinkort && (gps ? (
+          <button onClick={(e) => { e.stopPropagation(); setKarteOffen((o) => !o); }} title="Ort auf der Karte zeigen"
+            style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: "#7A2038", fontSize: 13, fontWeight: 600, textDecoration: "underline" }}>
+            📍 {w.trinkort} {karteOffen ? "▴" : "▾"}
+          </button>
+        ) : <span>📍 {w.trinkort}</span>)}
         {w.alkohol && <span>{w.alkohol}% Vol.</span>}
         {w.anzahlFlaschen && <span>🍾 {w.anzahlFlaschen} {String(w.anzahlFlaschen) === "1" ? "Flasche" : "Flaschen"}</span>}
         {preis && <span style={{ marginLeft: "auto", fontSize: 16, fontWeight: 700, color: "#7A2038" }}>{preis}</span>}
       </div>
 
-      {(w.bezugsquelle || linkGueltig(w.link) || w.alternativeBezugsquelle) && (
+      {karteOffen && gps && (() => {
+        const [lat, lon] = gps;
+        const bbox = `${lon - 0.01},${lat - 0.007},${lon + 0.01},${lat + 0.007}`;
+        return (
+          <div style={{ marginTop: 10 }}>
+            <iframe title="Karte" loading="lazy" src={`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lon}`}
+              style={{ width: "100%", height: 200, border: 0, borderRadius: 10 }} />
+            <a href={`https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=15/${lat}/${lon}`} target="_blank" rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()} style={{ display: "inline-block", marginTop: 4, fontSize: 12, color: "#7A2038" }}>Große Karte öffnen</a>
+          </div>
+        );
+      })()}
+
+      {(w.bezugsquelle || linkGueltig(w.link) || w.alternativeBezugsquelle || w.restaurantWebsite) && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
           {w.bezugsquelle && (
             <span style={chip}>
@@ -654,6 +688,12 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
                   title={`${w.weinname || "Wein"} online suchen`} style={{ display: "inline-flex", alignItems: "center", color: "#7A2038", textDecoration: "none" }}>🔎</a>
               )}
             </span>
+          )}
+          {w.restaurantWebsite && (
+            <a href={/^https?:\/\//.test(w.restaurantWebsite) ? w.restaurantWebsite : "https://" + w.restaurantWebsite} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+              style={{ ...chip, textDecoration: "none" }}>
+              🌐 {w.bezugsquelle === "Restaurant/Weinbar" && w.restaurantName ? w.restaurantName : "Restaurant"}
+            </a>
           )}
           {linkGueltig(w.link) && (
             <a href={linkBereinigen(w.link)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
@@ -1763,6 +1803,12 @@ function Weinkeller({ onLogout }) {
                 </div>
               )}
               <div><label>Preis (€)</label><UnitInput unit="€" placeholder="z. B. 24,30 oder ca. 25" value={form.preis} onChange={(e) => setForm({ ...form, preis: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.preis)} /></div>
+              {form.bezugsquelle === "Restaurant/Weinbar" && (
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <label>Website Restaurant / Weinbar</label>
+                  <input placeholder="https://…" value={form.restaurantWebsite} onChange={(e) => setForm({ ...form, restaurantWebsite: e.target.value })} onFocus={alleMarkieren} style={leerStilNutzer(form.restaurantWebsite)} />
+                </div>
+              )}
               <div>
                 <label>Alternative Bezugsquelle (online)</label>
                 <input placeholder="z. B. Tesdorpf – 43,90 €" value={form.alternativeBezugsquelle} onChange={(e) => setForm({ ...form, alternativeBezugsquelle: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.alternativeBezugsquelle)} />
@@ -1863,6 +1909,10 @@ function Weinkeller({ onLogout }) {
               <div style={{ gridColumn: "1 / -1" }}>
                 <label>Getrunken in (Ort)</label>
                 <input placeholder="z. B. Hamburg-Eppendorf, Restaurant Rote Wand" value={form.trinkort} onChange={(e) => setForm({ ...form, trinkort: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.trinkort)} />
+              </div>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label>GPS-Koordinaten (Breite, Länge), optional</label>
+                <input placeholder="z. B. 53.5511, 9.9937" value={form.trinkortGPS} onChange={(e) => setForm({ ...form, trinkortGPS: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.trinkortGPS)} />
               </div>
               <div>
                 <label>Etikett vorne</label>
