@@ -223,7 +223,7 @@ const EMPTY_FORM = {
   alternativeBezugsquelle: "", link: "", merkliste: "", weitereJahrgaenge: "", kritiker: "", sakeReis: "", sakePraefektur: "", sakeKlasse: "", sakePoliergrad: "", sakeSMV: "", sakeTrinktemp: "", haendlerJahrgang: "", nachkaufPreis: "", nachkaufLink: "", ausverkauft: "",
   bewertung: "", wiederkaufen: "", notizen: "", etikettVorne: "",
   favorit: false, favoritBJ: false, preis: "", anzahlFlaschen: "", weinbeschreibung: "", speiseempfehlung: "", hintergrundgeschichte: "", regionBeschreibung: "",
-  dekantieren: "", dekantierzeit: "", restaurantName: "", nurVorOrtErhaeltlich: "", trinkort: "", trinkortGPS: "", restaurantWebsite: "",
+  dekantieren: "", dekantierzeit: "", restaurantName: "", nurVorOrtErhaeltlich: "", trinkort: "", trinkortGPS: "", trinkortAdresse: "", restaurantWebsite: "",
 };
 
 const FIELD_MAP = {
@@ -262,6 +262,7 @@ const FIELD_MAP = {
   "webseite restaurant": "restaurantWebsite", "restaurant-webseite": "restaurantWebsite", "restaurant webseite": "restaurantWebsite",
   "website weinbar": "restaurantWebsite", "webseite weinbar": "restaurantWebsite", "weinbar-website": "restaurantWebsite",
   koordinaten: "trinkortGPS", gps: "trinkortGPS", "gps-koordinaten": "trinkortGPS", "gps koordinaten": "trinkortGPS", "koordinaten (gps)": "trinkortGPS", standort: "trinkortGPS",
+  adresse: "trinkortAdresse", "trinkort-adresse": "trinkortAdresse", "adresse (ort)": "trinkortAdresse",
   trinkort: "trinkort", "getrunken in": "trinkort", "ort (getrunken)": "trinkort", aufnahmeort: "trinkort", "aufnahmeort (exif)": "trinkort",
 };
 
@@ -297,7 +298,7 @@ function parseQuickText(text) {
     const rawVal = line.slice(idx + 1).trim();
     const key = FIELD_MAP[rawKey];
     if (!key || !rawVal) return;
-    if (key === "saeure" || key === "bewertung" || key === "anzahlFlaschen") {
+    if (key === "saeure" || key === "bewertung" || key === "anzahlFlaschen" || key === "dekantierzeit") {
       // Nur die führende Zahl nehmen (z.B. "3 (Ausgewogen) - 6,16 g/l..." -> 3),
       // nicht alle Ziffern im Text zusammenkleben (das ergäbe sonst z.B. 3616).
       const m = rawVal.match(/^\s*(\d+)/);
@@ -934,7 +935,13 @@ function Weinkeller({ onLogout }) {
 
   function applyQuickText() {
     const parsed = parseQuickText(quickText);
-    setForm((f) => ({ ...f, ...parsed }));
+    setForm((f) => {
+      const merged = { ...f, ...parsed };
+      if (merged.restaurantName && !merged.restaurantWebsite && restaurantWebsites[merged.restaurantName]) {
+        merged.restaurantWebsite = restaurantWebsites[merged.restaurantName];
+      }
+      return merged;
+    });
     setQuickApplied(true);
   }
 
@@ -985,6 +992,67 @@ function Weinkeller({ onLogout }) {
   const trauben = useMemo(() => Array.from(new Set(wines.map((w) => w.traube).filter(Boolean))).sort(), [wines]);
   const jahrgaenge = useMemo(() => Array.from(new Set(wines.map((w) => w.jahrgang).filter(Boolean))).sort((a, b) => b - a), [wines]);
   const restaurants = useMemo(() => Array.from(new Set(wines.map((w) => w.restaurantName).filter(Boolean))).sort(), [wines]);
+  // Zuletzt erfasste Website je Restaurant/Weinbar, damit sie bei gleichem Namen automatisch übernommen wird
+  const restaurantWebsites = useMemo(() => {
+    const map = {};
+    wines.forEach((w) => { if (w.restaurantName && w.restaurantWebsite) map[w.restaurantName] = w.restaurantWebsite; });
+    return map;
+  }, [wines]);
+
+  // Bereits verwendete Orte (Trinkort mit Adresse, Koordinaten und ggf. Restaurant), damit sie nicht jedes Mal neu eingegeben werden müssen
+  const knownOrte = useMemo(() => {
+    const map = {};
+    wines.forEach((w) => {
+      if (w.trinkort) map[w.trinkort] = { trinkort: w.trinkort, trinkortGPS: w.trinkortGPS || "", trinkortAdresse: w.trinkortAdresse || "", restaurantName: w.restaurantName || "", restaurantWebsite: w.restaurantWebsite || "" };
+    });
+    return Object.values(map).sort((a, b) => a.trinkort.localeCompare(b.trinkort, "de"));
+  }, [wines]);
+
+  const [ortSuche, setOrtSuche] = useState({ busy: false, msg: "", kandidaten: [] });
+
+  function gespeicherterOrtWaehlen(name) {
+    const o = knownOrte.find((x) => x.trinkort === name);
+    if (!o) return;
+    setForm((f) => ({ ...f, trinkort: o.trinkort, trinkortGPS: o.trinkortGPS, trinkortAdresse: o.trinkortAdresse, restaurantName: o.restaurantName, restaurantWebsite: o.restaurantWebsite || f.restaurantWebsite }));
+  }
+
+  function gastronomieWaehlen(k) {
+    setForm((f) => ({ ...f, restaurantName: k.name, restaurantWebsite: k.website || f.restaurantWebsite }));
+    setOrtSuche({ busy: false, msg: `Übernommen: ${k.name}`, kandidaten: [] });
+  }
+
+  // Adresse über OpenStreetMap (Nominatim) suchen, dann benannte Gastronomie in der Nähe (Overpass) auflisten
+  async function ortErmitteln() {
+    const q = (form.trinkortAdresse || "").trim();
+    if (!q) { setOrtSuche({ busy: false, msg: "Bitte zuerst eine Adresse eingeben.", kandidaten: [] }); return; }
+    setOrtSuche({ busy: true, msg: "Suche läuft …", kandidaten: [] });
+    try {
+      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=1&q=${encodeURIComponent(q)}`, { headers: { "Accept-Language": "de" } });
+      const treffer = await r.json();
+      if (!treffer.length) { setOrtSuche({ busy: false, msg: "Adresse nicht gefunden. Bitte genauer eingeben (Straße, Hausnummer, PLZ, Ort).", kandidaten: [] }); return; }
+      const lat = parseFloat(treffer[0].lat);
+      const lon = parseFloat(treffer[0].lon);
+      const a = treffer[0].address || {};
+      const stadt = a.city || a.town || a.village || "";
+      const stadtteil = a.suburb || a.quarter || a.city_district || "";
+      const trinkortNeu = stadtteil && stadt && stadtteil !== stadt ? `${stadt}-${stadtteil}` : (stadtteil || stadt);
+      setForm((f) => ({ ...f, trinkort: trinkortNeu || f.trinkort, trinkortGPS: `${lat.toFixed(5)}, ${lon.toFixed(5)}` }));
+      try {
+        const query = `[out:json][timeout:10];(node(around:60,${lat},${lon})["amenity"~"^(restaurant|bar|cafe|pub|biergarten|wine_bar)$"]["name"];way(around:60,${lat},${lon})["amenity"~"^(restaurant|bar|cafe|pub|biergarten|wine_bar)$"]["name"];);out center tags 10;`;
+        const o = await fetch("https://overpass-api.de/api/interpreter", { method: "POST", body: "data=" + encodeURIComponent(query) });
+        const oj = await o.json();
+        const seen = new Set();
+        const kandidaten = (oj.elements || [])
+          .map((e) => ({ name: e.tags.name, website: e.tags.website || e.tags["contact:website"] || "" }))
+          .filter((k) => k.name && !seen.has(k.name) && seen.add(k.name));
+        setOrtSuche({ busy: false, msg: kandidaten.length ? "Gastronomie in der Nähe, bitte auswählen:" : "Ort gefunden. Keine benannte Gastronomie in der Nähe.", kandidaten });
+      } catch (err) {
+        setOrtSuche({ busy: false, msg: "Ort gefunden, aber die Gastronomie-Suche ist gerade nicht erreichbar.", kandidaten: [] });
+      }
+    } catch (err) {
+      setOrtSuche({ busy: false, msg: "Suche nicht möglich (keine Verbindung).", kandidaten: [] });
+    }
+  }
 
   function sortValue(w, key) {
     switch (key) {
@@ -1788,7 +1856,7 @@ function Weinkeller({ onLogout }) {
               {form.bezugsquelle === "Restaurant/Weinbar" && (
                 <div>
                   <label>Restaurant / Ort</label>
-                  <input list="restaurant-liste" placeholder="z. B. Chef's Table, Rote Wand" value={form.restaurantName} onChange={(e) => setForm({ ...form, restaurantName: e.target.value })} onFocus={alleMarkieren} style={leerStilNutzer(form.restaurantName)} />
+                  <input list="restaurant-liste" placeholder="z. B. Chef's Table, Rote Wand" value={form.restaurantName} onChange={(e) => { const n = e.target.value; setForm({ ...form, restaurantName: n, restaurantWebsite: !form.restaurantWebsite && restaurantWebsites[n] ? restaurantWebsites[n] : form.restaurantWebsite }); }} onFocus={alleMarkieren} style={leerStilNutzer(form.restaurantName)} />
                   <datalist id="restaurant-liste">
                     {restaurants.map((r) => <option key={r} value={r} />)}
                   </datalist>
@@ -1908,7 +1976,28 @@ function Weinkeller({ onLogout }) {
               )}
               <div style={{ gridColumn: "1 / -1" }}>
                 <label>Getrunken in (Ort)</label>
+                {knownOrte.length > 0 && (
+                  <select value="" onChange={(e) => e.target.value && gespeicherterOrtWaehlen(e.target.value)} style={{ marginBottom: 6 }}>
+                    <option value="">Gespeicherten Ort wählen …</option>
+                    {knownOrte.map((o) => <option key={o.trinkort} value={o.trinkort}>{o.trinkort}{o.restaurantName ? ` (${o.restaurantName})` : ""}</option>)}
+                  </select>
+                )}
                 <input placeholder="z. B. Hamburg-Eppendorf, Restaurant Rote Wand" value={form.trinkort} onChange={(e) => setForm({ ...form, trinkort: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.trinkort)} />
+              </div>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label>Adresse (für Ort und Karte)</label>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <input placeholder="z. B. Ohlsdorfer Str. 2, 22299 Hamburg" value={form.trinkortAdresse} onChange={(e) => setForm({ ...form, trinkortAdresse: e.target.value })} onFocus={alleMarkieren} style={{ flex: 1, ...leerStil(form.trinkortAdresse) }} />
+                  <button type="button" onClick={ortErmitteln} disabled={ortSuche.busy} style={{ background: "#EFE6D3", border: "1px solid #DDD2BE", borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: ortSuche.busy ? "default" : "pointer", whiteSpace: "nowrap" }}>📍 Ort ermitteln</button>
+                </div>
+                {ortSuche.msg && <div style={{ fontSize: 12, color: "#7A6F63", marginTop: 6 }}>{ortSuche.msg}</div>}
+                {ortSuche.kandidaten.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}>
+                    {ortSuche.kandidaten.map((k) => (
+                      <button key={k.name} type="button" onClick={() => gastronomieWaehlen(k)} style={{ background: "#FFFDF9", border: "1px solid #DDD2BE", borderRadius: 999, padding: "4px 10px", fontSize: 12, cursor: "pointer" }}>{k.name}{k.website ? " 🌐" : ""}</button>
+                    ))}
+                  </div>
+                )}
               </div>
               <div style={{ gridColumn: "1 / -1" }}>
                 <label>GPS-Koordinaten (Breite, Länge), optional</label>
