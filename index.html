@@ -94,6 +94,9 @@
   label { font-size: 12px; color: #7A6F63; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; display: block; margin-bottom: 4px; }
   #root { min-height: 100vh; }
   .wine-grid { display: flex; flex-direction: column; gap: 10px; }
+  /* Nachtmodus: Farben umkehren, Fotos wieder normal darstellen */
+  html.dark { filter: invert(1) hue-rotate(180deg); }
+  html.dark img, html.dark iframe { filter: invert(1) hue-rotate(180deg); }
   @media (min-width: 900px) {
     .wine-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; align-items: stretch; }
   }
@@ -223,7 +226,7 @@ const EMPTY_FORM = {
   alternativeBezugsquelle: "", link: "", merkliste: "", merklisteArt: "", weitereJahrgaenge: "", kritiker: "", sakeReis: "", sakePraefektur: "", sakeKlasse: "", sakePoliergrad: "", sakeSMV: "", sakeTrinktemp: "", haendlerJahrgang: "", nachkaufPreis: "", nachkaufLink: "", ausverkauft: "",
   bewertung: "", wiederkaufen: "", notizen: "", etikettVorne: "",
   favorit: false, favoritBJ: false, preis: "", anzahlFlaschen: "", weinbeschreibung: "", speiseempfehlung: "", hintergrundgeschichte: "", regionBeschreibung: "",
-  dekantieren: "", dekantierzeit: "", restaurantName: "", nurVorOrtErhaeltlich: "", trinkort: "", trinkortGPS: "", trinkortAdresse: "", restaurantWebsite: "",
+  dekantieren: "", dekantierzeit: "", restaurantName: "", nurVorOrtErhaeltlich: "", trinkort: "", trinkDatum: "", trinkortGPS: "", trinkortAdresse: "", restaurantWebsite: "",
 };
 
 const FIELD_MAP = {
@@ -264,7 +267,7 @@ const FIELD_MAP = {
   koordinaten: "trinkortGPS", gps: "trinkortGPS", "gps-koordinaten": "trinkortGPS", "gps koordinaten": "trinkortGPS", "koordinaten (gps)": "trinkortGPS", standort: "trinkortGPS",
   adresse: "trinkortAdresse", "trinkort-adresse": "trinkortAdresse", "adresse (ort)": "trinkortAdresse",
   website: "restaurantWebsite", webseite: "restaurantWebsite",
-  trinkort: "trinkort", "getrunken in": "trinkort", "ort (getrunken)": "trinkort", aufnahmeort: "trinkort", "aufnahmeort (exif)": "trinkort",
+  trinkort: "trinkort", "getrunken in": "trinkort", "getrunken am": "trinkDatum", trinkdatum: "trinkDatum", datum: "trinkDatum", "ort (getrunken)": "trinkort", aufnahmeort: "trinkort", "aufnahmeort (exif)": "trinkort",
 };
 
 // Normalisiert einen Weingut-Namen für Vergleiche: entfernt Klammerzusätze (z.B. Rechtsform-Erklärungen)
@@ -278,6 +281,15 @@ function weingutNormalisiert(s) {
     .replace(/[.,]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+// Dublette: gleicher Weinname, gleiches Weingut und gleicher Jahrgang (ohne den Wein selbst)
+function findeDublette(liste, kandidat) {
+  const norm = (x) => String(x || "").trim().toLowerCase();
+  return liste.find((w) => w.id !== kandidat.id
+    && norm(w.weinname) === norm(kandidat.weinname)
+    && weingutNormalisiert(w.weingut) === weingutNormalisiert(kandidat.weingut)
+    && norm(w.jahrgang) === norm(kandidat.jahrgang)) || null;
 }
 
 // Restaurant/Weinbar vor den Ort setzen, z. B. "Kimdo Weinbar, Hamburg-Winterhude"
@@ -337,6 +349,10 @@ function parseQuickText(text) {
       // (z.B. "2 Stunden vorher" -> "2"), da die Anzeige die Einheit selbst anhängt.
       const m = rawVal.match(/^\s*([\d.,]+)/);
       out[key] = m ? m[1] : rawVal;
+    } else if (key === "trinkDatum") {
+      // Deutsches Datum (TT.MM.JJJJ) in das Format des Datumsfelds umwandeln
+      const m = rawVal.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+      out[key] = m ? `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}` : rawVal;
     } else if (key === "typ") {
       const v = rawVal.toLowerCase();
       if (v.includes("rot")) out[key] = "Rot";
@@ -666,7 +682,8 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
         {[w.alkohol && `${w.alkohol} % Vol.`, w.anzahlFlaschen && `🍾 ${w.anzahlFlaschen} ${String(w.anzahlFlaschen) === "1" ? "Flasche" : "Flaschen"}`].filter(Boolean).join(" · ")}
       </div>
 
-      <div style={{ marginTop: "auto", paddingTop: 10, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+      <div style={{ marginTop: "auto", paddingTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
         {istMerkliste && <span style={{ ...pille, background: "#3F6E9E" }}>🔖 {w.merklisteArt === "kaufen" ? "Kaufen" : "Trinken"}</span>}
         {w.trinkort && (gps ? (
           <button onClick={(e) => { e.stopPropagation(); setKarteOffen((o) => !o); }} title="Ort auf der Karte zeigen"
@@ -680,7 +697,8 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
             🛒 {haendlerAusLink(w.link)}
           </a>
         )}
-        <div style={{ display: "flex", gap: 2, marginLeft: "auto", alignItems: "center" }}>
+      </div>
+        <div style={{ display: "flex", gap: 2, justifyContent: "flex-end", alignItems: "center" }}>
           <button onClick={() => onExpand(w)} title="Vollansicht öffnen" style={{ ...aktion, width: 26, height: 26, background: "transparent" }}><Maximize2 size={14} /></button>
           <button onClick={() => onToggleFavorit(w.id)} title="Favorit" style={{ ...aktion, width: 26, height: 26, background: "transparent", color: w.favorit ? "#C9A961" : "#B9B0A3" }}><Star size={15} fill={w.favorit ? "#C9A961" : "none"} /></button>
           <button onClick={() => onToggleFavoritBJ(w.id)} title="Favorit BJ" style={{ ...aktion, width: 26, height: 26, background: "transparent", color: w.favoritBJ ? "#B0453F" : "#B9B0A3" }}><Heart size={14} fill={w.favoritBJ ? "#B0453F" : "none"} /></button>
@@ -752,6 +770,23 @@ function Weinkeller({ onLogout }) {
   const [ansicht, setAnsicht] = useState("alle");
   const [merkArt, setMerkArt] = useState("alle");
   const [mehrOffen, setMehrOffen] = useState(false);
+  const [theme, setTheme] = useState(() => { try { return localStorage.getItem("weinkeller_theme") || "auto"; } catch (e) { return "auto"; } });
+  useEffect(() => {
+    // "auto" folgt dem Erscheinungsbild von iPhone bzw. Mac (hell/dunkel)
+    const systemDunkel = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+    const pruefen = () => {
+      const nacht = theme === "dunkel" || (theme === "auto" && !!(systemDunkel && systemDunkel.matches));
+      document.documentElement.classList.toggle("dark", nacht);
+    };
+    pruefen();
+    if (systemDunkel && systemDunkel.addEventListener) systemDunkel.addEventListener("change", pruefen);
+    return () => { if (systemDunkel && systemDunkel.removeEventListener) systemDunkel.removeEventListener("change", pruefen); };
+  }, [theme]);
+  function themeWechseln() {
+    const next = theme === "auto" ? "dunkel" : theme === "dunkel" ? "hell" : "auto";
+    setTheme(next);
+    try { localStorage.setItem("weinkeller_theme", next); } catch (e) {}
+  }
   const [cloudHinweisAus, setCloudHinweisAus] = useState(() => {
     try { return localStorage.getItem("cloudHinweisAus") === "1"; } catch (e) { return false; }
   });
@@ -894,6 +929,8 @@ function Weinkeller({ onLogout }) {
     if (parsed.trinkortGPS && gpsAusText(parsed.trinkortGPS)) {
       ortAusGps(parsed.trinkortGPS);
     }
+    const dublette = findeDublette(wines, { ...form, ...parsed });
+    if (dublette) setError(`Hinweis: „${dublette.weinname}“ von ${dublette.weingut || "—"} (${dublette.jahrgang || "ohne Jahrgang"}) ist schon erfasst.`);
     setQuickApplied(true);
   }
 
@@ -902,11 +939,13 @@ function Weinkeller({ onLogout }) {
       setError("Bitte mindestens einen Weinnamen angeben.");
       return;
     }
+    const dublette = findeDublette(wines, form);
+    if (dublette && !window.confirm(`„${dublette.weinname}“ von ${dublette.weingut || "—"} (${dublette.jahrgang || "ohne Jahrgang"}) ist schon erfasst. Trotzdem speichern?`)) return;
     setError("");
     // Verlauf der Trinkorte: bei jedem geänderten Ort wird ein Eintrag mit heutigem Datum angehängt
     const verlauf = Array.isArray(form.trinkVerlauf) ? [...form.trinkVerlauf] : [];
     if (form.trinkort && (verlauf.length === 0 || verlauf[verlauf.length - 1].ort !== form.trinkort)) {
-      verlauf.push({ datum: new Date().toISOString().slice(0, 10), ort: form.trinkort, gps: form.trinkortGPS || "", adresse: form.trinkortAdresse || "" });
+      verlauf.push({ datum: form.trinkDatum || new Date().toISOString().slice(0, 10), ort: form.trinkort, gps: form.trinkortGPS || "", adresse: form.trinkortAdresse || "" });
     }
     const basis = form.hinzugefuegt ? form : { ...form, hinzugefuegt: new Date().toISOString() };
     const wine = { ...basis, trinkVerlauf: verlauf };
@@ -1227,7 +1266,7 @@ function Weinkeller({ onLogout }) {
       Weinbeschreibung: w.weinbeschreibung, Speiseempfehlung: w.speiseempfehlung, "Region kurz vorgestellt": w.regionBeschreibung, Hintergrundgeschichte: w.hintergrundgeschichte,
       "Wieder kaufen": w.wiederkaufen, Notizen: w.notizen, Favorit: w.favorit ? "Ja" : "Nein", "Favorit BJ": w.favoritBJ ? "Ja" : "Nein",
       Dekantieren: w.dekantieren, "Dekantierzeit (Stunden)": w.dekantierzeit, "Restaurant/Ort": w.restaurantName, "Website Restaurant": w.restaurantWebsite, "Nur vor Ort erhältlich": w.nurVorOrtErhaeltlich,
-      "Getrunken in": w.trinkort, "Adresse (Ort)": w.trinkortAdresse, "GPS-Koordinaten": w.trinkortGPS,
+      "Getrunken in": w.trinkort, Trinkdatum: w.trinkDatum, "Adresse (Ort)": w.trinkortAdresse, "GPS-Koordinaten": w.trinkortGPS,
       Etikett: w.etikettVorne || "",
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
@@ -1302,7 +1341,7 @@ function Weinkeller({ onLogout }) {
             dekantieren: String(r["Dekantieren"] || ""), dekantierzeit: String(r["Dekantierzeit (Stunden)"] || ""),
             restaurantName: String(r["Restaurant/Ort"] || ""),
             restaurantWebsite: String(r["Website Restaurant"] || ""),
-            trinkort: String(r["Getrunken in"] || ""),
+            trinkort: String(r["Getrunken in"] || ""), trinkDatum: String(r["Trinkdatum"] || ""),
             trinkortAdresse: String(r["Adresse (Ort)"] || ""),
             trinkortGPS: String(r["GPS-Koordinaten"] || ""),
             nurVorOrtErhaeltlich: String(r["Nur vor Ort erhältlich"] || ""),
@@ -1353,6 +1392,10 @@ function Weinkeller({ onLogout }) {
                   </div>
                 )}
               </div>
+              <button onClick={themeWechseln} title={`Anzeige: ${theme === "auto" ? "wie das Gerät" : theme === "dunkel" ? "dunkel" : "hell"}`}
+                style={{ width: 36, height: 36, borderRadius: 10, border: "none", background: "transparent", color: "#857D75", fontSize: 16, cursor: "pointer" }}>
+                {theme === "auto" ? "◐" : theme === "dunkel" ? "☾" : "☀"}
+              </button>
               <label title="Laden" style={{ width: 36, height: 36, borderRadius: 10, display: "grid", placeItems: "center", cursor: "pointer", color: "#857D75", margin: 0 }}>
                 <Upload size={16} />
                 <input type="file" accept=".xlsx,.xls" onChange={importExcel} style={{ display: "none" }} />
@@ -1953,6 +1996,10 @@ function Weinkeller({ onLogout }) {
                 <input placeholder="https://…" value={form.link} onChange={(e) => setForm({ ...form, link: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.link)} />
               </div>
               <div style={{ gridColumn: "1 / -1", fontFamily: "'Fraunces', Georgia, serif", fontSize: 17, fontWeight: 600, margin: "16px 0 2px", paddingBottom: 6, borderBottom: "1px solid #E7E2DA" }}>Ort</div>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label>Getrunken am</label>
+                <input type="date" value={form.trinkDatum || ""} onChange={(e) => setForm({ ...form, trinkDatum: e.target.value })} style={leerStil(form.trinkDatum)} />
+              </div>
               <div style={{ gridColumn: "1 / -1" }}>
                 <label>Getrunken in (Ort)</label>
                 {knownOrte.length > 0 && (
