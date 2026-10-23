@@ -207,6 +207,7 @@ const Star = (p) => <Icon {...p}><polygon points="12 2 15.09 8.26 22 9.27 17 14.
 const Heart = (p) => <Icon {...p}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z" /></Icon>;
 const Maximize2 = (p) => <Icon {...p}><polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" /><line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" /></Icon>;
 const WineIcon = (p) => <Icon {...p}><path d="M8 22h8" /><path d="M12 15v7" /><path d="M12 15a6 6 0 0 0 6-6c0-2-1.5-3-1.5-5.5S18 2 18 2H6s1.5 1 1.5 3.5S6 11 6 13a6 6 0 0 0 6 2Z" /></Icon>;
+const Cart = (p) => <Icon {...p}><circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" /></Icon>;
 
 /* ---------- Konstanten (unverändert aus der App) ---------- */
 const TYP_COLORS = {
@@ -728,7 +729,7 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
   const preisZahl = /^\s*(ca\.?\s*)?\d[\d.,\s]*$/i.test(String(w.preis ?? "")) ? preisAnzeige(w.preis) : "";
 
   const chip = { display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, background: "var(--c-f4f1ec)", color: "var(--c-4a4038)", borderRadius: 999, padding: "3px 10px", lineHeight: 1.4 };
-  const pille = { fontSize: 11, fontWeight: 600, color: "#FFFDF9", borderRadius: 999, padding: "2px 9px", lineHeight: 1.5 };
+  const pille = { display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "#FFFDF9", borderRadius: 999, padding: "2px 9px", lineHeight: 1.5 };
   const aktion = { display: "grid", placeItems: "center", width: 32, height: 32, borderRadius: 10, background: "var(--c-f4f1ec)", border: "none", cursor: "pointer", color: "var(--c-7a726b)", padding: 0 };
   const menuBtn = { display: "flex", alignItems: "center", gap: 8, width: "100%", background: "none", border: "none", padding: "10px 14px", fontSize: 13, cursor: "pointer", textAlign: "left", color: "var(--c-4a4038)" };
 
@@ -770,7 +771,7 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
 
       <div style={{ marginTop: "auto", paddingTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-        {w.nachkaufen === "Ja" && <span style={{ ...pille, background: "#7A2038" }}>🛒 Nachkaufen</span>}
+        {w.nachkaufen === "Ja" && <span style={{ ...pille, background: "#7A2038" }}><Cart size={12} color="#FFFDF9" />Nachkaufen</span>}
         {istMerkliste && <span style={{ ...pille, background: "#3F6E9E" }}>🔖 {w.merklisteArt === "kaufen" ? "Kaufen" : "Trinken"}</span>}
         {w.trinkort && w.merklisteArt !== "kaufen" && (gps ? (
           <button onClick={(e) => { e.stopPropagation(); setKarteOffen((o) => !o); }} title="Ort auf der Karte zeigen"
@@ -781,7 +782,7 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
         {linkGueltig(w.link) && (
           <a href={linkBereinigen(w.link)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
             style={{ ...chip, background: "#7A2038", color: "#FFFDF9", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}>
-            🛒 {haendlerAusLink(w.link)}
+            <Cart size={13} color="#FFFDF9" />{haendlerAusLink(w.link)}
           </a>
         )}
       </div>
