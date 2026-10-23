@@ -1350,6 +1350,8 @@ function Weinkeller({ onLogout }) {
       "Wieder kaufen": w.wiederkaufen, Nachkaufen: w.nachkaufen, Notizen: w.notizen, Favorit: w.favorit ? "Ja" : "Nein", "Favorit BJ": w.favoritBJ ? "Ja" : "Nein",
       Dekantieren: w.dekantieren, "Dekantierzeit (Stunden)": w.dekantierzeit, "Restaurant/Ort": w.restaurantName, "Website Restaurant": w.restaurantWebsite, "Nur vor Ort erhältlich": w.nurVorOrtErhaeltlich,
       "Getrunken in": w.trinkort, Trinkdatum: w.trinkDatum, "Adresse (Ort)": w.trinkortAdresse, "GPS-Koordinaten": w.trinkortGPS,
+      "Hinzugefügt am": w.hinzugefuegt || "",
+      "Trinkverlauf (JSON)": JSON.stringify(w.trinkVerlauf || []),
       Etikett: w.etikettVorne || "",
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
@@ -1429,7 +1431,9 @@ function Weinkeller({ onLogout }) {
             trinkortGPS: String(r["GPS-Koordinaten"] || ""),
             nurVorOrtErhaeltlich: String(r["Nur vor Ort erhältlich"] || ""),
             etikettVorne: String(r["Etikett"] || ""),
+            trinkVerlauf: (() => { try { return JSON.parse(String(r["Trinkverlauf (JSON)"] || "[]")); } catch (e) { return []; } })(),
           };
+          if (r["Hinzugefügt am"]) parsed.hinzugefuegt = String(r["Hinzugefügt am"]);
           const existing = existingByKey[wineKey(parsed)];
           const wine = existing
             ? { ...existing, ...parsed, etikettVorne: parsed.etikettVorne || existing.etikettVorne || "" }
