@@ -165,9 +165,9 @@
     --c-7a6f63: #A89E90;
     --c-7a726b: #A39A90;
     --c-857d75: #A39A90;
-    --c-a89c89: #8A8175;
-    --c-b7ab98: #7D7467;
-    --c-b9b0a3: #7D7467;
+    --c-a89c89: #A39A8C;
+    --c-b7ab98: #978C7E;
+    --c-b9b0a3: #978C7E;
     --c-8a8075: #A39A90;
     --c-8a3a34: #E8A8A2;
     --c-7a2038: #C9566F;
@@ -728,7 +728,7 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
   const preisZahl = /^\s*(ca\.?\s*)?\d[\d.,\s]*$/i.test(String(w.preis ?? "")) ? preisAnzeige(w.preis) : "";
 
   const chip = { display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, background: "var(--c-f4f1ec)", color: "var(--c-4a4038)", borderRadius: 999, padding: "3px 10px", lineHeight: 1.4 };
-  const pille = { fontSize: 11, fontWeight: 600, color: "var(--c-fffdf9)", borderRadius: 999, padding: "2px 9px", lineHeight: 1.5 };
+  const pille = { fontSize: 11, fontWeight: 600, color: "#FFFDF9", borderRadius: 999, padding: "2px 9px", lineHeight: 1.5 };
   const aktion = { display: "grid", placeItems: "center", width: 32, height: 32, borderRadius: 10, background: "var(--c-f4f1ec)", border: "none", cursor: "pointer", color: "var(--c-7a726b)", padding: 0 };
   const menuBtn = { display: "flex", alignItems: "center", gap: 8, width: "100%", background: "none", border: "none", padding: "10px 14px", fontSize: 13, cursor: "pointer", textAlign: "left", color: "var(--c-4a4038)" };
 
@@ -770,8 +770,8 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
 
       <div style={{ marginTop: "auto", paddingTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-        {w.nachkaufen === "Ja" && <span style={{ ...pille, background: "var(--c-7a2038)" }}>🛒 Nachkaufen</span>}
-        {istMerkliste && <span style={{ ...pille, background: "var(--c-3f6e9e)" }}>🔖 {w.merklisteArt === "kaufen" ? "Kaufen" : "Trinken"}</span>}
+        {w.nachkaufen === "Ja" && <span style={{ ...pille, background: "#7A2038" }}>🛒 Nachkaufen</span>}
+        {istMerkliste && <span style={{ ...pille, background: "#3F6E9E" }}>🔖 {w.merklisteArt === "kaufen" ? "Kaufen" : "Trinken"}</span>}
         {w.trinkort && w.merklisteArt !== "kaufen" && (gps ? (
           <button onClick={(e) => { e.stopPropagation(); setKarteOffen((o) => !o); }} title="Ort auf der Karte zeigen"
             style={{ ...chip, border: "none", cursor: "pointer", color: "var(--c-7a2038)", fontWeight: 600, whiteSpace: "nowrap" }}>
@@ -780,7 +780,7 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
         ) : <span style={{ ...chip, whiteSpace: "nowrap" }}>📍 {w.trinkort}</span>)}
         {linkGueltig(w.link) && (
           <a href={linkBereinigen(w.link)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
-            style={{ ...chip, background: "var(--c-7a2038)", color: "var(--c-ffffff)", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}>
+            style={{ ...chip, background: "#7A2038", color: "#FFFDF9", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}>
             🛒 {haendlerAusLink(w.link)}
           </a>
         )}
@@ -1502,7 +1502,7 @@ function Weinkeller({ onLogout }) {
               Filter{aktiveAnzahl ? ` (${aktiveAnzahl})` : ""}
             </button>
             <button onClick={openNewForm} title="Wein hinzufügen"
-              style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 6, background: "var(--c-7a2038)", color: "var(--c-ffffff)", border: "none", borderRadius: 12, padding: "0 16px", height: 42, fontSize: 14, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+              style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 6, background: "#7A2038", color: "#FFFDF9", border: "none", borderRadius: 12, padding: "0 16px", height: 42, fontSize: 14, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
               <Plus size={16} /> Wein
             </button>
           </div>
@@ -2248,7 +2248,7 @@ function Weinkeller({ onLogout }) {
 
             {error && <div style={{ color: "#B0453F", fontSize: 13, marginTop: 10 }}>{error}</div>}
 
-            <button onClick={saveForm} disabled={uploading} style={{ marginTop: 16, width: "100%", background: uploading ? "#B79A8A" : "var(--c-7a2038)", color: "var(--c-fffdf9)", border: "none", borderRadius: 10, padding: 12, fontSize: 14, fontWeight: 600, cursor: uploading ? "default" : "pointer" }}>
+            <button onClick={saveForm} disabled={uploading} style={{ marginTop: 16, width: "100%", background: uploading ? "#B79A8A" : "#7A2038", color: "#FFFDF9", border: "none", borderRadius: 10, padding: 12, fontSize: 14, fontWeight: 600, cursor: uploading ? "default" : "pointer" }}>
               Speichern
             </button>
           </div>
