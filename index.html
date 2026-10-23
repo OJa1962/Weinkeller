@@ -1449,7 +1449,7 @@ function Weinkeller({ onLogout }) {
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--c-f6f4f1)", fontFamily: "'Inter', system-ui, sans-serif", color: "var(--c-211d1a)" }}>
-      <div style={{ maxWidth: 1400, margin: "0 auto", padding: "24px 16px 80px" }}>
+      <div style={{ maxWidth: 1400, margin: "0 auto", padding: "calc(24px + env(safe-area-inset-top, 0px)) 16px calc(80px + env(safe-area-inset-bottom, 0px))" }}>
         <div style={{ maxWidth: 720, margin: "0 auto" }}>
         <header style={{ padding: "4px 0 0" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
