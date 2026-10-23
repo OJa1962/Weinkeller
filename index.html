@@ -138,7 +138,7 @@
   }
   html.dark {
     --c-f6f4f1: #15120F;
-    --c-ffffff: #1F1B18;
+    --c-ffffff: #2A2420;
     --c-fffdf9: #211D1A;
     --c-f5f0e6: #1A1714;
     --c-f4f1ec: #2A2521;
@@ -470,7 +470,7 @@ function LabelThumb({ src, onClick }) {
   const [failed, setFailed] = useState(false);
   if (!src || failed) {
     return (
-      <div style={{ width: 40, height: 52, flexShrink: 0, borderRadius: 4, border: "1px dashed #DDD2BE", background: "var(--c-f5f0e6)", display: "flex", alignItems: "center", justifyContent: "center" }} title="Bild konnte nicht geladen werden">
+      <div style={{ width: 40, height: 52, flexShrink: 0, borderRadius: 4, border: "1px dashed var(--c-ddd2be)", background: "var(--c-f5f0e6)", display: "flex", alignItems: "center", justifyContent: "center" }} title="Bild konnte nicht geladen werden">
         <WineIcon size={16} color="#C9A961" />
       </div>
     );
@@ -478,7 +478,7 @@ function LabelThumb({ src, onClick }) {
   return (
     <img src={src} alt="Etikett – zum Vergrößern antippen"
       onClick={onClick}
-      style={{ width: 40, height: 52, objectFit: "cover", borderRadius: 4, border: "1px solid #E5DBC8", flexShrink: 0, cursor: onClick ? "pointer" : "default" }}
+      style={{ width: 40, height: 52, objectFit: "cover", borderRadius: 4, border: "1px solid var(--c-e5dbc8)", flexShrink: 0, cursor: onClick ? "pointer" : "default" }}
       onError={() => setFailed(true)} />
   );
 }
@@ -552,7 +552,7 @@ function NachkaufZeile({ w, big }) {
   return (
     <div style={{ marginTop: 6, fontSize: big ? 14 : 12.5, color: "var(--c-4a4038)", display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
       <span>{label}</span>
-      {ausverkauft && <span style={{ fontWeight: 700, color: "var(--c-b0453f)" }}>ausverkauft</span>}
+      {ausverkauft && <span style={{ fontWeight: 700, color: "#B0453F" }}>ausverkauft</span>}
       {link && (
         <a href={linkBereinigen(w.nachkaufLink)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
           style={{ color: "var(--c-7a2038)", fontWeight: 600, textDecoration: "underline" }}>🛒 Nachkauf</a>
@@ -648,6 +648,12 @@ function preisAnzeige(p) {
   return s;
 }
 
+// Trinkdatum aus dem Datumsfeld (JJJJ-MM-TT) als TT.MM.JJJJ anzeigen
+function datumDE(s) {
+  const m = String(s ?? "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? `${m[3]}.${m[2]}.${m[1]}` : "";
+}
+
 // Link nur anzeigen, wenn es eine echte Web-Adresse ist.
 function linkGueltig(s) {
   return /^https?:\/\//i.test(String(s ?? "").trim());
@@ -685,8 +691,7 @@ function buildAltSearchUrl(w) {
   const text = (w.alternativeBezugsquelle || "").toLowerCase();
   // Verneinungen wie "nicht gelistet" oder "kein Webshop" bedeuten: der Händler wurde
   // GEPRÜFT, aber NICHT gefunden - dann darf die Suche nicht auf genau diese Seite
-  // eingeschränkt werden, sondern muss offen im gesamten Web suchen (z.B. bei einem
-  // bisher unbekannten Händler, den man für einen besonders guten Wein in Kauf nimmt).
+  // eingeschränkt werden, sondern muss offen im gesamten Web suchen.
   const verneint = /nicht|kein/.test(text);
   let domain = null;
   if (!verneint) {
@@ -728,7 +733,7 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
   const menuBtn = { display: "flex", alignItems: "center", gap: 8, width: "100%", background: "none", border: "none", padding: "10px 14px", fontSize: 13, cursor: "pointer", textAlign: "left", color: "var(--c-4a4038)" };
 
   return (
-    <div style={{ background: "var(--c-ffffff)", border: "1px solid #E7E2DA", borderRadius: 14, padding: "14px 14px 12px 18px", position: "relative", display: "flex", flexDirection: "column", minHeight: 180, overflow: "hidden" }}>
+    <div style={{ background: "var(--c-ffffff)", border: "1px solid var(--c-e7e2da)", borderRadius: 14, padding: "14px 14px 12px 18px", position: "relative", display: "flex", flexDirection: "column", minHeight: 180, overflow: "hidden" }}>
       <div style={{ position: "absolute", left: 0, top: 14, bottom: 14, width: 3, borderRadius: "0 3px 3px 0", background: akzent }} />
 
       <div style={{ display: "flex", alignItems: "flex-start", gap: 10, minHeight: 58 }}>
@@ -737,7 +742,7 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
             {w.bewertung}
           </div>
         ) : (
-          <div title="Noch nicht bewertet" style={{ width: 34, height: 34, borderRadius: "50%", border: "1.5px dashed #E7E2DA", display: "grid", placeItems: "center", color: "var(--c-857d75)", flex: "0 0 auto", marginTop: 2, fontSize: 13 }}>–</div>
+          <div title="Noch nicht bewertet" style={{ width: 34, height: 34, borderRadius: "50%", border: "1.5px dashed var(--c-e7e2da)", display: "grid", placeItems: "center", color: "var(--c-857d75)", flex: "0 0 auto", marginTop: 2, fontSize: 13 }}>–</div>
         )}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="display-font" style={{ fontSize: 18, fontWeight: 600, lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{w.weinname || "—"}</div>
@@ -787,7 +792,7 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
           <div ref={menuRef} style={{ position: "relative" }}>
             <button onClick={() => setMenuOffen((o) => !o)} title="Weitere Aktionen" style={{ ...aktion, width: 26, height: 26, background: "transparent", fontSize: 16, lineHeight: 1 }}>⋯</button>
             {menuOffen && (
-              <div style={{ position: "absolute", right: 0, bottom: 32, background: "var(--c-ffffff)", border: "1px solid #E7E2DA", borderRadius: 10, boxShadow: "0 8px 20px rgba(60,40,20,.15)", zIndex: 5, minWidth: 190, overflow: "hidden" }}>
+              <div style={{ position: "absolute", right: 0, bottom: 32, background: "var(--c-ffffff)", border: "1px solid var(--c-e7e2da)", borderRadius: 10, boxShadow: "0 8px 20px rgba(60,40,20,.15)", zIndex: 5, minWidth: 190, overflow: "hidden" }}>
                 <button onClick={() => { setMenuOffen(false); onToggleMerkliste(w.id); }} style={menuBtn}>🔖 {istMerkliste ? "Von der Merkliste nehmen" : "Auf die Merkliste"}</button>
                 <button onClick={() => { setMenuOffen(false); onEdit(w); }} style={menuBtn}><Pencil size={14} /> Bearbeiten</button>
                 <button onClick={() => { setMenuOffen(false); onDelete(w.id); }} style={{ ...menuBtn, color: "#B0453F" }}><Trash2 size={14} /> Löschen</button>
@@ -937,8 +942,6 @@ function Weinkeller({ onLogout }) {
 
   // Hebt ein Feld farblich hervor, solange es nach dem Übernehmen der Schnelleingabe
   // noch leer ist - Erinnerung an das, was noch manuell ausgefüllt werden muss.
-  // Kräftige, klar sichtbare Füllfarbe statt nur dezenter Rahmenänderung, da ein
-  // zu heller Ton in der ohnehin cremefarbenen Optik der App kaum auffällt.
   // Felder, die erst nach dem Trinken gefüllt werden: bei Merkliste-Weinen nicht gelb markieren
   function leerStilNutzer(val) {
     return form.merkliste === "Ja" ? {} : leerStil(val);
@@ -1167,13 +1170,7 @@ function Weinkeller({ onLogout }) {
       const trinkortNeu = stadtteil && stadt && stadtteil !== stadt ? `${stadt}-${stadtteil}` : (stadtteil || stadt);
       setForm((f) => ({ ...f, trinkort: mitRestaurant(f.trinkort || trinkortNeu, f.restaurantName), trinkortGPS: `${lat.toFixed(5)}, ${lon.toFixed(5)}` }));
       try {
-        const query = `[out:json][timeout:10];(node(around:60,${lat},${lon})["amenity"~"^(restaurant|bar|cafe|pub|biergarten|wine_bar)$"]["name"];way(around:60,${lat},${lon})["amenity"~"^(restaurant|bar|cafe|pub|biergarten|wine_bar)$"]["name"];);out center tags 10;`;
-        const o = await fetch("https://overpass-api.de/api/interpreter", { method: "POST", body: "data=" + encodeURIComponent(query) });
-        const oj = await o.json();
-        const seen = new Set();
-        const kandidaten = (oj.elements || [])
-          .map((e) => ({ name: e.tags.name, website: e.tags.website || e.tags["contact:website"] || "" }))
-          .filter((k) => k.name && !seen.has(k.name) && seen.add(k.name));
+        const kandidaten = await gastronomieSuche(lat, lon);
         setOrtSuche({ busy: false, msg: kandidaten.length ? "Gastronomie in der Nähe, bitte auswählen:" : "Ort gefunden. Keine benannte Gastronomie in der Nähe.", kandidaten });
       } catch (err) {
         setOrtSuche({ busy: false, msg: "Ort gefunden, aber die Gastronomie-Suche ist gerade nicht erreichbar.", kandidaten: [] });
@@ -1192,6 +1189,8 @@ function Weinkeller({ onLogout }) {
       case "traube": return (w.traube || "").toLowerCase();
       case "typ": return (w.typ || "").toLowerCase();
       case "neu": return w.hinzugefuegt ? -new Date(w.hinzugefuegt).getTime() : 0;
+      // Getrunken am: neuestes Datum zuerst, Weine ohne Trinkdatum ans Ende
+      case "trinkDatum": return w.trinkDatum ? -new Date(w.trinkDatum).getTime() : Number.POSITIVE_INFINITY;
       case "anzahlFlaschen": return -(parseFloat(w.anzahlFlaschen) || 0);
       default: return 0;
     }
@@ -1462,7 +1461,7 @@ function Weinkeller({ onLogout }) {
               <div style={{ position: "relative" }}>
                 <button onClick={() => setMehrOffen((o) => !o)} title="Mehr" style={{ width: 36, height: 36, borderRadius: 10, border: "none", background: "transparent", color: "var(--c-857d75)", fontSize: 18, cursor: "pointer" }}>⋯</button>
                 {mehrOffen && (
-                  <div style={{ position: "absolute", right: 0, top: 40, background: "var(--c-ffffff)", border: "1px solid #ECE9E4", borderRadius: 12, boxShadow: "0 8px 20px rgba(60,40,20,.15)", zIndex: 10, minWidth: 230, overflow: "hidden" }}>
+                  <div style={{ position: "absolute", right: 0, top: 40, background: "var(--c-ffffff)", border: "1px solid var(--c-e7e2da)", borderRadius: 12, boxShadow: "0 8px 20px rgba(60,40,20,.15)", zIndex: 10, minWidth: 230, overflow: "hidden" }}>
                     <button disabled={filtered.length === 0} onClick={() => { setMehrOffen(false); copyForClaude(); }}
                       style={{ display: "block", width: "100%", background: "none", border: "none", padding: "11px 14px", fontSize: 13, textAlign: "left", cursor: "pointer", color: "var(--c-1e1b18)" }}>
                       Für Claude kopieren ({filtered.length} gefiltert)
@@ -1496,10 +1495,10 @@ function Weinkeller({ onLogout }) {
               value={suchtext}
               onChange={(e) => setSuchtext(e.target.value)}
               placeholder="Wein, Weingut, Rebsorte, Ort …"
-              style={{ flex: 1, minWidth: 0, height: 48, borderRadius: 14, background: "var(--c-ffffff)", border: "1px solid #ECE9E4", padding: "0 16px", fontSize: 15 }}
+              style={{ flex: 1, minWidth: 0, height: 48, borderRadius: 14, background: "var(--c-ffffff)", border: "1px solid var(--c-e7e2da)", padding: "0 16px", fontSize: 15 }}
             />
             <button onClick={() => setFilterOffen(!filterOffen)}
-              style={{ flexShrink: 0, height: 48, padding: "0 16px", borderRadius: 14, background: filterOffen || aktiveAnzahl ? "var(--c-1e1b18)" : "var(--c-ffffff)", color: filterOffen || aktiveAnzahl ? "var(--c-ffffff)" : "var(--c-1e1b18)", border: "1px solid #ECE9E4", fontSize: 14, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+              style={{ flexShrink: 0, height: 48, padding: "0 16px", borderRadius: 14, background: filterOffen || aktiveAnzahl ? "var(--c-1e1b18)" : "var(--c-ffffff)", color: filterOffen || aktiveAnzahl ? "var(--c-ffffff)" : "var(--c-1e1b18)", border: "1px solid var(--c-e7e2da)", fontSize: 14, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
               Filter{aktiveAnzahl ? ` (${aktiveAnzahl})` : ""}
             </button>
             <button onClick={openNewForm} title="Wein hinzufügen"
@@ -1510,20 +1509,20 @@ function Weinkeller({ onLogout }) {
         </header>
 
         {(savedFlash || !loaded) && (<div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: savedFlash ? "var(--c-4e9b57)" : "var(--c-b7ab98)", marginTop: -12, marginBottom: 14, height: 14, transition: "color 0.3s" }}>
-          {savedFlash ? "✓ in der Cloud gespeichert – auf allen Geräten sichtbar" : (!loaded ? "Verbindung wird hergestellt…" : "\u00A0")}
+          {savedFlash ? "✓ in der Cloud gespeichert – auf allen Geräten sichtbar" : (!loaded ? "Verbindung wird hergestellt…" : " ")}
         </div>)}
 
         {cloudError && (
-          <div style={{ background: "var(--c-fbeaea)", border: "1px solid #E5B8B4", borderRadius: 8, padding: "10px 12px", fontSize: 13, marginBottom: 14, color: "var(--c-8a3a34)" }}>
+          <div style={{ background: "var(--c-fbeaea)", border: "1px solid var(--c-e5b8b4)", borderRadius: 8, padding: "10px 12px", fontSize: 13, marginBottom: 14, color: "var(--c-8a3a34)" }}>
             Keine Verbindung zur Cloud-Datenbank. Prüfe deine Internetverbindung – Änderungen können gerade nicht gespeichert werden.
           </div>
         )}
 
         {dirty && !cloudError && !cloudHinweisAus && (
-          <div style={{ background: "var(--c-fbf3e4)", border: "1px solid #E3D3B0", borderRadius: 8, padding: "10px 12px", fontSize: 13, marginBottom: 14, color: "var(--c-6b5940)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+          <div style={{ background: "var(--c-fbf3e4)", border: "1px solid var(--c-e3d3b0)", borderRadius: 8, padding: "10px 12px", fontSize: 13, marginBottom: 14, color: "var(--c-6b5940)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
             <span>Deine Daten werden automatisch in der Cloud gespeichert und mit allen Geräten synchronisiert. „Sichern" legt zusätzlich eine Excel-Sicherungskopie an.</span>
             <button onClick={() => { setCloudHinweisAus(true); try { localStorage.setItem("cloudHinweisAus", "1"); } catch (e) {} }}
-              style={{ flexShrink: 0, background: "none", border: "1px solid #E3D3B0", borderRadius: 6, padding: "4px 10px", fontSize: 12, color: "var(--c-6b5940)", cursor: "pointer" }}>
+              style={{ flexShrink: 0, background: "none", border: "1px solid var(--c-e3d3b0)", borderRadius: 6, padding: "4px 10px", fontSize: 12, color: "var(--c-6b5940)", cursor: "pointer" }}>
               Verstanden
             </button>
           </div>
@@ -1542,7 +1541,7 @@ function Weinkeller({ onLogout }) {
           </div>
         )}
 
-        <div style={{ display: "flex", gap: 22, borderBottom: "1px solid #ECE9E4", marginBottom: 12 }}>
+        <div style={{ display: "flex", gap: 22, borderBottom: "1px solid var(--c-e7e2da)", marginBottom: 12 }}>
           {[["alle", "Alle"], ["keller", "Keller"], ["merkliste", `Merkliste${anzahlMerkliste ? ` (${anzahlMerkliste})` : ""}`]].map(([key, label]) => (
             <button key={key} onClick={() => setAnsicht(key)}
               style={{ background: "none", border: "none", padding: "10px 0 12px", fontSize: 14, fontWeight: 600, cursor: "pointer", color: ansicht === key ? "var(--c-1e1b18)" : "var(--c-857d75)", position: "relative" }}>
@@ -1599,6 +1598,7 @@ function Weinkeller({ onLogout }) {
               <option value="traube">Rebsorte</option>
               <option value="typ">Typ</option>
               <option value="anzahlFlaschen">Anzahl Flaschen</option>
+              <option value="trinkDatum">Getrunken am</option>
               <option value="neu">Zuletzt hinzugefügt</option>
             </select>
           </div>
@@ -1613,6 +1613,7 @@ function Weinkeller({ onLogout }) {
               <option value="traube">Rebsorte</option>
               <option value="typ">Typ</option>
               <option value="anzahlFlaschen">Anzahl Flaschen</option>
+              <option value="trinkDatum">Getrunken am</option>
               <option value="neu">Zuletzt hinzugefügt</option>
             </select>
           </div>
@@ -1724,18 +1725,6 @@ function Weinkeller({ onLogout }) {
 
         </>)}
 
-        {false && (<div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-        <button onClick={copyForClaude} disabled={filtered.length === 0}
-          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", background: copyFlash ? "var(--c-efe6d3)" : "var(--c-fffdf9)", color: "var(--c-2b2320)", border: "1px solid #DDD2BE", borderRadius: 10, padding: "10px", fontSize: 13, fontWeight: 500, cursor: filtered.length === 0 ? "default" : "pointer", opacity: filtered.length === 0 ? 0.5 : 1 }}>
-          {copyFlash ? "✓ kopiert – jetzt bei Claude einfügen" : `Für Claude kopieren (${filtered.length} gefiltert)`}
-        </button>
-
-        <button onClick={copyForClaudeSlim} disabled={filtered.length === 0}
-          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", background: copyFlashSlim ? "var(--c-efe6d3)" : "var(--c-fffdf9)", color: "var(--c-2b2320)", border: "1px solid #DDD2BE", borderRadius: 10, padding: "10px", fontSize: 13, fontWeight: 500, cursor: filtered.length === 0 ? "default" : "pointer", opacity: filtered.length === 0 ? 0.5 : 1 }}>
-          {copyFlashSlim ? "✓ kopiert – jetzt bei Claude einfügen" : `Speisen-Kurzliste (${filtered.length})`}
-        </button>
-        </div>)}
-
         {loaded && filtered.length === 0 && (
           <div style={{ textAlign: "center", color: "var(--c-7a6f63)", padding: "40px 0" }}>
             Noch keine Weine erfasst. Foto ans Gespräch schicken, ich liefere den Text für die Schnelleingabe.
@@ -1743,7 +1732,6 @@ function Weinkeller({ onLogout }) {
         )}
         </div>
 
-        <div style={{ fontSize: 10, color: "var(--c-b7ab98)", textAlign: "right", marginBottom: 6 }}>Stand: Variante 1 · 21.10.2026 17:30</div>
         <div className="wine-grid">
           {filtered.map((w) => (
             <WineCard
@@ -1776,7 +1764,7 @@ function Weinkeller({ onLogout }) {
         const dw = wines.find((w2) => w2.id === detailWine.id) || detailWine;
         return (
           <div onClick={() => setDetailWine(null)} style={{ position: "fixed", inset: 0, background: "rgba(43,35,32,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 60, padding: 20 }}>
-            <div onClick={(e) => e.stopPropagation()} style={{ background: "#FFFDF9", width: "100%", maxWidth: 640, maxHeight: "88vh", overflowY: "auto", borderRadius: 16, padding: 26, position: "relative", borderTop: `6px solid ${TYP_COLORS[dw.typ] || "#7A2038"}` }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--c-ffffff)", width: "100%", maxWidth: 640, maxHeight: "88vh", overflowY: "auto", borderRadius: 16, padding: 26, position: "relative", borderTop: `6px solid ${TYP_COLORS[dw.typ] || "#7A2038"}` }}>
               <button onClick={() => setDetailWine(null)} style={{ position: "absolute", top: 16, right: 16, background: "var(--c-f5f0e6)", border: "none", borderRadius: "50%", width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--c-7a6f63)" }}>
                 <X size={18} />
               </button>
@@ -1784,7 +1772,7 @@ function Weinkeller({ onLogout }) {
               <div style={{ display: "flex", gap: 14 }}>
                 {dw.etikettVorne && (
                   <img src={dw.etikettVorne} alt="Etikett" onClick={() => setLightbox(dw.etikettVorne)}
-                    style={{ width: 128, height: 170, objectFit: "contain", borderRadius: 8, background: "var(--c-f4f1ec)", border: "1px solid #E5DBC8", flexShrink: 0, cursor: "zoom-in" }} />
+                    style={{ width: 128, height: 170, objectFit: "contain", borderRadius: 8, background: "var(--c-f4f1ec)", border: "1px solid var(--c-e5dbc8)", flexShrink: 0, cursor: "zoom-in" }} />
                 )}
                 <div>
                   <div className="display-font" style={{ fontSize: 24, fontWeight: 700 }}>{dw.weinname || "—"}</div>
@@ -1830,7 +1818,7 @@ function Weinkeller({ onLogout }) {
                 </div>
               )}
               {dw.bezugsquelle === "Restaurant/Weinbar" && dw.nurVorOrtErhaeltlich === "Ja" && (
-                <div style={{ marginTop: 6, fontSize: 15, fontWeight: 600, color: "var(--c-b0453f)" }}>
+                <div style={{ marginTop: 6, fontSize: 15, fontWeight: 600, color: "#B0453F" }}>
                   🚫 Nur vor Ort erhältlich – nicht online bestellbar
                 </div>
               )}
@@ -1880,6 +1868,9 @@ function Weinkeller({ onLogout }) {
               )}
               {dw.wiederkaufen && <div style={{ marginTop: 6, fontSize: 14, color: "var(--c-7a6f63)" }}>Wiederkaufen/-trinken: {dw.wiederkaufen}</div>}
 
+              {datumDE(dw.trinkDatum) && (
+                <div style={{ marginTop: 6, fontSize: 14, color: "var(--c-7a6f63)" }}>🗓 Getrunken am: {datumDE(dw.trinkDatum)}</div>
+              )}
               {dw.trinkVerlauf && dw.trinkVerlauf.length > 0 && (
                 <div style={{ marginTop: 16 }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: "var(--c-7a6f63)", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 6 }}>Getrunken in</div>
@@ -1940,7 +1931,7 @@ function Weinkeller({ onLogout }) {
                   Steht die Zeile "Merkliste: Ja" im Text, kommt der Wein auf die Merkliste. Die Felder, die erst nach dem Trinken gefüllt werden, bleiben dann ohne gelbe Markierung.
                 </div>
                 <textarea rows={6} value={quickText} onChange={(e) => setQuickText(e.target.value)} placeholder={"Weingut: ...\nWeinname: ...\nLand: ...\nMerkliste: Ja\n..."} />
-                <button onClick={applyQuickText} style={{ marginTop: 6, background: "var(--c-efe6d3)", border: "1px solid #DDD2BE", borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: "pointer" }}>
+                <button onClick={applyQuickText} style={{ marginTop: 6, background: "var(--c-efe6d3)", border: "1px solid var(--c-ddd2be)", borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: "pointer" }}>
                   Übernehmen
                 </button>
               </div>
@@ -1955,14 +1946,14 @@ function Weinkeller({ onLogout }) {
               if (aeltere.length === 0) return null;
               const jahrgaengeText = aeltere.map((w) => w.jahrgang || "?").join(", ");
               return (
-                <div style={{ background: "var(--c-fbf3e4)", border: "1px solid #E3D3B0", borderRadius: 8, padding: "10px 12px", fontSize: 13, marginBottom: 16, color: "var(--c-6b5940)" }}>
+                <div style={{ background: "var(--c-fbf3e4)", border: "1px solid var(--c-e3d3b0)", borderRadius: 8, padding: "10px 12px", fontSize: 13, marginBottom: 16, color: "var(--c-6b5940)" }}>
                   Hinweis: „{form.weinname}" ist bereits mit Jahrgang {jahrgaengeText} in der Liste. Der ältere Eintrag bleibt automatisch erhalten – bei Bedarf kannst du ihn selbst über den Papierkorb-Button löschen, oder mit dem Schalter „Nur neuesten Jahrgang je Wein anzeigen" einfach ausblenden.
                 </div>
               );
             })()}
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              <div style={{ gridColumn: "1 / -1", fontFamily: "'Fraunces', Georgia, serif", fontSize: 17, fontWeight: 600, margin: "16px 0 2px", paddingBottom: 6, borderBottom: "1px solid #E7E2DA" }}>Grunddaten</div>
+              <div style={{ gridColumn: "1 / -1", fontFamily: "'Fraunces', Georgia, serif", fontSize: 17, fontWeight: 600, margin: "16px 0 2px", paddingBottom: 6, borderBottom: "1px solid var(--c-e7e2da)" }}>Grunddaten</div>
               <div><label>Weingut</label><input value={form.weingut} onChange={(e) => setForm({ ...form, weingut: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.weingut)} /></div>
               <div><label>Weinname</label><input value={form.weinname} onChange={(e) => setForm({ ...form, weinname: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.weinname)} /></div>
               <div><label>Land</label><input value={form.land} onChange={(e) => setForm({ ...form, land: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.land)} /></div>
@@ -1984,7 +1975,7 @@ function Weinkeller({ onLogout }) {
               <div><label>SMV (Sake-Meter-Value)</label><input placeholder="z. B. +3" value={form.sakeSMV} onChange={(e) => setForm({ ...form, sakeSMV: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.sakeSMV)} /></div>
               <div><label>Trinktemperatur</label><input placeholder="z. B. gekühlt, 10–14 °C" value={form.sakeTrinktemp} onChange={(e) => setForm({ ...form, sakeTrinktemp: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.sakeTrinktemp)} /></div>
               </>)}
-              <div style={{ gridColumn: "1 / -1", fontFamily: "'Fraunces', Georgia, serif", fontSize: 17, fontWeight: 600, margin: "16px 0 2px", paddingBottom: 6, borderBottom: "1px solid #E7E2DA" }}>Weinprofil</div>
+              <div style={{ gridColumn: "1 / -1", fontFamily: "'Fraunces', Georgia, serif", fontSize: 17, fontWeight: 600, margin: "16px 0 2px", paddingBottom: 6, borderBottom: "1px solid var(--c-e7e2da)" }}>Weinprofil</div>
               {form.typ !== "Süßwein" && (<div>
                 <label>Säure (1–5)</label>
                 <select value={form.saeure} onChange={(e) => setForm({ ...form, saeure: e.target.value ? parseInt(e.target.value, 10) : "" })} style={leerStil(form.saeure)}>
@@ -2028,7 +2019,7 @@ function Weinkeller({ onLogout }) {
                   <input placeholder="z. B. Wine Advocate 94 · Suckling 93 (Quelle)" value={form.kritiker} onChange={(e) => setForm({ ...form, kritiker: e.target.value })} onFocus={alleMarkieren} style={{}} />
                 </div>
               )}
-              <div style={{ gridColumn: "1 / -1", fontFamily: "'Fraunces', Georgia, serif", fontSize: 17, fontWeight: 600, margin: "16px 0 2px", paddingBottom: 6, borderBottom: "1px solid #E7E2DA" }}>Bezug</div>
+              <div style={{ gridColumn: "1 / -1", fontFamily: "'Fraunces', Georgia, serif", fontSize: 17, fontWeight: 600, margin: "16px 0 2px", paddingBottom: 6, borderBottom: "1px solid var(--c-e7e2da)" }}>Bezug</div>
               <div><label>Bezugsquelle</label>
                 <select value={form.bezugsquelle} onChange={(e) => setForm({ ...form, bezugsquelle: e.target.value })} style={leerStilNutzer(form.bezugsquelle)}>
                   <option value=""></option>
@@ -2037,7 +2028,7 @@ function Weinkeller({ onLogout }) {
                   <option value="Wein am Limit">Wein am Limit</option>
                   <option value="Wein am Limit Abo">Wein am Limit Abo</option>
                   <option value="Lobenberg">Lobenberg</option>
-              <option value="Sake Kontor">Sake Kontor</option>
+                  <option value="Sake Kontor">Sake Kontor</option>
                   <option value="Tesdorpf">Tesdorpf</option>
                   <option value="Rebsaal / Herr Schindler">Rebsaal / Herr Schindler</option>
                   <option value="Restaurant/Weinbar">Restaurant/Weinbar</option>
@@ -2077,8 +2068,9 @@ function Weinkeller({ onLogout }) {
                 <label>Link zum Angebot (Händler)</label>
                 <input placeholder="https://…" value={form.link} onChange={(e) => setForm({ ...form, link: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.link)} />
               </div>
+
               {!(form.merkliste === "Ja" && form.merklisteArt === "kaufen") && (<>
-              <div style={{ gridColumn: "1 / -1", fontFamily: "'Fraunces', Georgia, serif", fontSize: 17, fontWeight: 600, margin: "16px 0 2px", paddingBottom: 6, borderBottom: "1px solid #E7E2DA" }}>Ort</div>
+              <div style={{ gridColumn: "1 / -1", fontFamily: "'Fraunces', Georgia, serif", fontSize: 17, fontWeight: 600, margin: "16px 0 2px", paddingBottom: 6, borderBottom: "1px solid var(--c-e7e2da)" }}>Ort</div>
               <div style={{ gridColumn: "1 / -1" }}>
                 <label>Getrunken am</label>
                 <input type="date" value={form.trinkDatum || ""} onChange={(e) => setForm({ ...form, trinkDatum: e.target.value })} style={leerStil(form.trinkDatum)} />
@@ -2090,7 +2082,7 @@ function Weinkeller({ onLogout }) {
                     <span style={{ fontSize: 12, color: "var(--c-7a6f63)", alignSelf: "center" }}>Gespeicherte Orte:</span>
                     {knownOrte.map((o) => (
                       <button key={o.trinkort} type="button" onClick={() => gespeicherterOrtWaehlen(o.trinkort)}
-                        style={{ background: form.trinkort === o.trinkort ? "var(--c-7a2038)" : "var(--c-fffdf9)", color: form.trinkort === o.trinkort ? "var(--c-fffdf9)" : "var(--c-4a4038)", border: "1px solid #DDD2BE", borderRadius: 999, padding: "4px 10px", fontSize: 12, cursor: "pointer" }}>
+                        style={{ background: form.trinkort === o.trinkort ? "var(--c-7a2038)" : "var(--c-fffdf9)", color: form.trinkort === o.trinkort ? "var(--c-fffdf9)" : "var(--c-4a4038)", border: "1px solid var(--c-ddd2be)", borderRadius: 999, padding: "4px 10px", fontSize: 12, cursor: "pointer" }}>
                         {o.trinkort}
                       </button>
                     ))}
@@ -2100,7 +2092,7 @@ function Weinkeller({ onLogout }) {
                   <input placeholder="z. B. Hamburg-Eppendorf, Restaurant Rote Wand" value={form.trinkort} onChange={(e) => setForm({ ...form, trinkort: e.target.value })} onFocus={alleMarkieren} style={{ flex: 1, minWidth: 0, ...leerStil(form.trinkort) }} />
                   {form.trinkort && (
                     <button type="button" title="Ort leeren" onClick={() => setForm({ ...form, trinkort: "" })}
-                      style={{ background: "var(--c-ffffff)", border: "1px solid #E7E2DA", borderRadius: 8, padding: "0 12px", cursor: "pointer", color: "var(--c-7a726b)", fontSize: 14 }}>✕</button>
+                      style={{ background: "var(--c-ffffff)", border: "1px solid var(--c-e7e2da)", borderRadius: 8, padding: "0 12px", cursor: "pointer", color: "var(--c-7a726b)", fontSize: 14 }}>✕</button>
                   )}
                 </div>
               </div>
@@ -2108,7 +2100,7 @@ function Weinkeller({ onLogout }) {
                 <label>Adresse (für Ort und Karte)</label>
                 <div style={{ display: "flex", gap: 6 }}>
                   <input placeholder="z. B. Ohlsdorfer Str. 2, 22299 Hamburg" value={form.trinkortAdresse} onChange={(e) => setForm({ ...form, trinkortAdresse: e.target.value })} onFocus={alleMarkieren} style={{ flex: 1, ...leerStil(form.trinkortAdresse) }} />
-                  <button type="button" onClick={ortErmitteln} disabled={ortSuche.busy} style={{ background: "var(--c-efe6d3)", border: "1px solid #DDD2BE", borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: ortSuche.busy ? "default" : "pointer", whiteSpace: "nowrap" }}>📍 Ort ermitteln</button>
+                  <button type="button" onClick={ortErmitteln} disabled={ortSuche.busy} style={{ background: "var(--c-efe6d3)", border: "1px solid var(--c-ddd2be)", borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: ortSuche.busy ? "default" : "pointer", whiteSpace: "nowrap" }}>📍 Ort ermitteln</button>
                 </div>
                 {gpsAusText(form.trinkortGPS) && (
                   <button type="button" onClick={() => ortAusGps(form.trinkortGPS)} disabled={ortSuche.busy}
@@ -2120,7 +2112,7 @@ function Weinkeller({ onLogout }) {
                 {ortSuche.kandidaten.length > 0 && (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}>
                     {ortSuche.kandidaten.map((k) => (
-                      <button key={k.name} type="button" onClick={() => gastronomieWaehlen(k)} style={{ background: "var(--c-fffdf9)", border: "1px solid #DDD2BE", borderRadius: 999, padding: "4px 10px", fontSize: 12, cursor: "pointer" }}>{k.name}{k.website ? " 🌐" : ""}</button>
+                      <button key={k.name} type="button" onClick={() => gastronomieWaehlen(k)} style={{ background: "var(--c-fffdf9)", border: "1px solid var(--c-ddd2be)", borderRadius: 999, padding: "4px 10px", fontSize: 12, cursor: "pointer" }}>{k.name}{k.website ? " 🌐" : ""}</button>
                     ))}
                   </div>
                 )}
@@ -2130,7 +2122,7 @@ function Weinkeller({ onLogout }) {
                 <input placeholder="z. B. 53.5511, 9.9937" value={form.trinkortGPS} onChange={(e) => setForm({ ...form, trinkortGPS: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.trinkortGPS)} />
               </div>
               </>)}
-              <div style={{ gridColumn: "1 / -1", fontFamily: "'Fraunces', Georgia, serif", fontSize: 17, fontWeight: 600, margin: "16px 0 2px", paddingBottom: 6, borderBottom: "1px solid #E7E2DA" }}>Nachkauf</div>
+              <div style={{ gridColumn: "1 / -1", fontFamily: "'Fraunces', Georgia, serif", fontSize: 17, fontWeight: 600, margin: "16px 0 2px", paddingBottom: 6, borderBottom: "1px solid var(--c-e7e2da)" }}>Nachkauf</div>
               <div>
                 <label>Händler-Jahrgang (anderer Jahrgang)</label>
                 <input placeholder="z. B. 2023" value={form.haendlerJahrgang} onChange={(e) => setForm({ ...form, haendlerJahrgang: e.target.value })} onFocus={alleMarkieren} style={{}} />
@@ -2150,10 +2142,10 @@ function Weinkeller({ onLogout }) {
                 <label>Weitere Jahrgänge online (ein Eintrag pro Zeile: Jahrgang · Händler · Preis · Link)</label>
                 <textarea rows={2} value={form.weitereJahrgaenge} onChange={(e) => setForm({ ...form, weitereJahrgaenge: e.target.value })} onFocus={alleMarkieren} placeholder={"2023 · Tesdorpf · 34,90 · https://…"} style={{}} />
               </div>
-              <div style={{ gridColumn: "1 / -1", fontFamily: "'Fraunces', Georgia, serif", fontSize: 17, fontWeight: 600, margin: "16px 0 2px", paddingBottom: 6, borderBottom: "1px solid #E7E2DA" }}>Persönlich</div>
+              <div style={{ gridColumn: "1 / -1", fontFamily: "'Fraunces', Georgia, serif", fontSize: 17, fontWeight: 600, margin: "16px 0 2px", paddingBottom: 6, borderBottom: "1px solid var(--c-e7e2da)" }}>Persönlich</div>
               <div>
                 <label>Merkliste</label>
-                <button type="button" onClick={() => setForm({ ...form, merkliste: form.merkliste === "Ja" ? "" : "Ja" })} style={{ display: "flex", alignItems: "center", gap: 6, background: form.merkliste === "Ja" ? "var(--c-eaf1fa)" : "var(--c-fffdf9)", border: form.merkliste === "Ja" ? "1px solid #4A6FA5" : "1px solid #DDD2BE", borderRadius: 8, padding: "8px 10px", cursor: "pointer", width: "100%" }}>🔖 {form.merkliste === "Ja" ? "Auf der Merkliste (noch nicht getrunken)" : "Auf die Merkliste (noch nicht getrunken)"}</button>
+                <button type="button" onClick={() => setForm({ ...form, merkliste: form.merkliste === "Ja" ? "" : "Ja" })} style={{ display: "flex", alignItems: "center", gap: 6, background: form.merkliste === "Ja" ? "var(--c-eaf1fa)" : "var(--c-fffdf9)", border: form.merkliste === "Ja" ? "1px solid var(--c-4a6fa5)" : "1px solid var(--c-ddd2be)", borderRadius: 8, padding: "8px 10px", cursor: "pointer", width: "100%" }}>🔖 {form.merkliste === "Ja" ? "Auf der Merkliste (noch nicht getrunken)" : "Auf die Merkliste (noch nicht getrunken)"}</button>
               </div>
               {form.merkliste === "Ja" && (
                 <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
@@ -2194,7 +2186,7 @@ function Weinkeller({ onLogout }) {
               </div>
               <div>
                 <label>Nachkaufen</label>
-                <button type="button" onClick={() => setForm({ ...form, nachkaufen: form.nachkaufen === "Ja" ? "" : "Ja" })} style={{ display: "flex", alignItems: "center", gap: 6, background: form.nachkaufen === "Ja" ? "var(--c-eaf1fa)" : "var(--c-fffdf9)", border: "1px solid " + (form.nachkaufen === "Ja" ? "#4A6FA5" : "#DDD2BE"), borderRadius: 8, padding: "8px 10px", cursor: "pointer", width: "100%" }}>
+                <button type="button" onClick={() => setForm({ ...form, nachkaufen: form.nachkaufen === "Ja" ? "" : "Ja" })} style={{ display: "flex", alignItems: "center", gap: 6, background: form.nachkaufen === "Ja" ? "var(--c-eaf1fa)" : "var(--c-fffdf9)", border: "1px solid " + (form.nachkaufen === "Ja" ? "var(--c-4a6fa5)" : "var(--c-ddd2be)"), borderRadius: 8, padding: "8px 10px", cursor: "pointer", width: "100%" }}>
                   🛒 {form.nachkaufen === "Ja" ? "Demnächst wieder kaufen" : "Nicht zum Nachkauf markiert"}
                 </button>
               </div>
@@ -2202,15 +2194,15 @@ function Weinkeller({ onLogout }) {
               {form.merkliste !== "Ja" && (<>
               <div>
                 <label>Favorit</label>
-                <button type="button" onClick={() => setForm({ ...form, favorit: !form.favorit })} style={{ display: "flex", alignItems: "center", gap: 6, background: "var(--c-fffdf9)", border: "1px solid #DDD2BE", borderRadius: 8, padding: "8px 10px", cursor: "pointer", width: "100%" }}>
-                  <Star size={22} color={form.favorit ? "#C9A961" : "#D8CDB8"} fill={form.favorit ? "#C9A961" : "none"} />
+                <button type="button" onClick={() => setForm({ ...form, favorit: !form.favorit })} style={{ display: "flex", alignItems: "center", gap: 6, background: "var(--c-fffdf9)", border: "1px solid var(--c-ddd2be)", borderRadius: 8, padding: "8px 10px", cursor: "pointer", width: "100%" }}>
+                  <Star size={22} color={form.favorit ? "#C9A961" : "var(--c-d8cdb8)"} fill={form.favorit ? "#C9A961" : "none"} />
                   <span style={{ fontSize: 14 }}>{form.favorit ? "Favorit" : "Kein Favorit"}</span>
                 </button>
               </div>
               <div>
                 <label>Favorit BJ</label>
-                <button type="button" onClick={() => setForm({ ...form, favoritBJ: !form.favoritBJ })} style={{ display: "flex", alignItems: "center", gap: 6, background: "var(--c-fffdf9)", border: "1px solid #DDD2BE", borderRadius: 8, padding: "8px 10px", cursor: "pointer", width: "100%" }}>
-                  <Heart size={20} color={form.favoritBJ ? "#B0453F" : "#D8CDB8"} fill={form.favoritBJ ? "#B0453F" : "none"} />
+                <button type="button" onClick={() => setForm({ ...form, favoritBJ: !form.favoritBJ })} style={{ display: "flex", alignItems: "center", gap: 6, background: "var(--c-fffdf9)", border: "1px solid var(--c-ddd2be)", borderRadius: 8, padding: "8px 10px", cursor: "pointer", width: "100%" }}>
+                  <Heart size={20} color={form.favoritBJ ? "#B0453F" : "var(--c-d8cdb8)"} fill={form.favoritBJ ? "#B0453F" : "none"} />
                   <span style={{ fontSize: 14 }}>{form.favoritBJ ? "Favorit BJ" : "Kein Favorit BJ"}</span>
                 </button>
               </div>
@@ -2221,7 +2213,7 @@ function Weinkeller({ onLogout }) {
                 <textarea rows={2} value={form.notizen} onChange={(e) => setForm({ ...form, notizen: e.target.value })} onFocus={alleMarkieren} />
               </div>
               )}
-              <div style={{ gridColumn: "1 / -1", fontFamily: "'Fraunces', Georgia, serif", fontSize: 17, fontWeight: 600, margin: "16px 0 2px", paddingBottom: 6, borderBottom: "1px solid #E7E2DA" }}>Beschreibung</div>
+              <div style={{ gridColumn: "1 / -1", fontFamily: "'Fraunces', Georgia, serif", fontSize: 17, fontWeight: 600, margin: "16px 0 2px", paddingBottom: 6, borderBottom: "1px solid var(--c-e7e2da)" }}>Beschreibung</div>
               <div style={{ gridColumn: "1 / -1" }}>
                 <label>Weinbeschreibung (eigene Zusammenfassung, nicht wörtlich kopiert)</label>
                 <textarea rows={2} value={form.weinbeschreibung} onChange={(e) => setForm({ ...form, weinbeschreibung: e.target.value })} onFocus={alleMarkieren} placeholder="Kurz: Charakter, Aromen, Struktur" style={leerStil(form.weinbeschreibung)} />
@@ -2238,12 +2230,12 @@ function Weinkeller({ onLogout }) {
                 <label>Hintergrundgeschichte</label>
                 <textarea rows={2} value={form.hintergrundgeschichte} onChange={(e) => setForm({ ...form, hintergrundgeschichte: e.target.value })} onFocus={alleMarkieren} placeholder="Winzergeschichte, Produktionsdetails, Anekdoten" style={leerStil(form.hintergrundgeschichte)} />
               </div>
-              <div style={{ gridColumn: "1 / -1", fontFamily: "'Fraunces', Georgia, serif", fontSize: 17, fontWeight: 600, margin: "16px 0 2px", paddingBottom: 6, borderBottom: "1px solid #E7E2DA" }}>Etikett</div>
+              <div style={{ gridColumn: "1 / -1", fontFamily: "'Fraunces', Georgia, serif", fontSize: 17, fontWeight: 600, margin: "16px 0 2px", paddingBottom: 6, borderBottom: "1px solid var(--c-e7e2da)" }}>Etikett</div>
               <div>
                 <label>Etikett vorne</label>
                 <div style={{ display: "flex", gap: 6 }}>
                   <input placeholder="Bild-URL einfügen" value={form.etikettVorne} onChange={(e) => setForm({ ...form, etikettVorne: e.target.value })} onFocus={alleMarkieren} disabled={uploading} style={leerStil(form.etikettVorne)} />
-                  <label style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 38, flexShrink: 0, background: "var(--c-efe6d3)", border: "1px solid #DDD2BE", borderRadius: 8, cursor: uploading ? "default" : "pointer", opacity: uploading ? 0.6 : 1 }}>
+                  <label style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 38, flexShrink: 0, background: "var(--c-efe6d3)", border: "1px solid var(--c-ddd2be)", borderRadius: 8, cursor: uploading ? "default" : "pointer", opacity: uploading ? 0.6 : 1 }}>
                     <Upload size={15} />
                     <input type="file" accept="image/*" style={{ display: "none" }} disabled={uploading} onChange={(e) => handleFileUpload("etikettVorne", e.target.files[0])} />
                   </label>
@@ -2254,7 +2246,7 @@ function Weinkeller({ onLogout }) {
               </div>
             </div>
 
-            {error && <div style={{ color: "var(--c-b0453f)", fontSize: 13, marginTop: 10 }}>{error}</div>}
+            {error && <div style={{ color: "#B0453F", fontSize: 13, marginTop: 10 }}>{error}</div>}
 
             <button onClick={saveForm} disabled={uploading} style={{ marginTop: 16, width: "100%", background: uploading ? "#B79A8A" : "var(--c-7a2038)", color: "var(--c-fffdf9)", border: "none", borderRadius: 10, padding: 12, fontSize: 14, fontWeight: 600, cursor: uploading ? "default" : "pointer" }}>
               Speichern
@@ -2292,7 +2284,7 @@ function Login() {
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--c-f5f0e6)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-      <form onSubmit={submit} style={{ background: "var(--c-fffdf9)", border: "1px solid #E5DBC8", borderRadius: 14, padding: 28, width: "100%", maxWidth: 360 }}>
+      <form onSubmit={submit} style={{ background: "var(--c-fffdf9)", border: "1px solid var(--c-e5dbc8)", borderRadius: 14, padding: 28, width: "100%", maxWidth: 360 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 18 }}>
           <WineIcon size={24} color="#7A2038" />
           <h1 className="display-font" style={{ fontSize: 22, margin: 0 }}>Weinkeller</h1>
@@ -2305,7 +2297,7 @@ function Login() {
           <label>Passwort</label>
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
         </div>
-        {error && <div style={{ color: "var(--c-b0453f)", fontSize: 13, marginBottom: 12 }}>{error}</div>}
+        {error && <div style={{ color: "#B0453F", fontSize: 13, marginBottom: 12 }}>{error}</div>}
         <button type="submit" disabled={busy || !fb} style={{ width: "100%", background: "var(--c-7a2038)", color: "var(--c-fffdf9)", border: "none", borderRadius: 10, padding: 12, fontSize: 14, fontWeight: 600, cursor: busy ? "default" : "pointer", opacity: busy || !fb ? 0.7 : 1 }}>
           {busy ? "Anmelden…" : "Anmelden"}
         </button>
