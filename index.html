@@ -728,7 +728,7 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
   const online = Object.prototype.hasOwnProperty.call(ONLINE_BEZUGSQUELLEN, w.bezugsquelle);
   const preisZahl = /^\s*(ca\.?\s*)?\d[\d.,\s]*$/i.test(String(w.preis ?? "")) ? preisAnzeige(w.preis) : "";
 
-  const chip = { display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, background: "var(--c-f4f1ec)", color: "var(--c-4a4038)", borderRadius: 999, padding: "3px 10px", lineHeight: 1.4 };
+  const chip = { display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 600, background: "var(--c-efe6d3)", color: "var(--c-211d1a)", borderRadius: 999, padding: "3px 10px", lineHeight: 1.4 };
   const pille = { display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "#FFFDF9", borderRadius: 999, padding: "2px 9px", lineHeight: 1.5 };
   const aktion = { display: "grid", placeItems: "center", width: 32, height: 32, borderRadius: 10, background: "var(--c-f4f1ec)", border: "none", cursor: "pointer", color: "var(--c-7a726b)", padding: 0 };
   const menuBtn = { display: "flex", alignItems: "center", gap: 8, width: "100%", background: "none", border: "none", padding: "10px 14px", fontSize: 13, cursor: "pointer", textAlign: "left", color: "var(--c-4a4038)" };
@@ -775,7 +775,7 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
         {istMerkliste && <span style={{ ...pille, background: "#3F6E9E" }}>🔖 {w.merklisteArt === "kaufen" ? "Kaufen" : "Trinken"}</span>}
         {w.trinkort && w.merklisteArt !== "kaufen" && (gps ? (
           <button onClick={(e) => { e.stopPropagation(); setKarteOffen((o) => !o); }} title="Ort auf der Karte zeigen"
-            style={{ ...chip, border: "none", cursor: "pointer", color: "var(--c-7a2038)", fontWeight: 600, whiteSpace: "nowrap" }}>
+            style={{ ...chip, border: "none", cursor: "pointer", whiteSpace: "nowrap" }}>
             📍 {w.trinkort} {karteOffen ? "▴" : "▾"}
           </button>
         ) : <span style={{ ...chip, whiteSpace: "nowrap" }}>📍 {w.trinkort}</span>)}
