@@ -777,6 +777,7 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
             📍 {w.trinkort} {karteOffen ? "▴" : "▾"}
           </button>
         ) : <span style={{ ...chip, whiteSpace: "nowrap" }}>📍 {w.trinkort}</span>)}
+        {w.nurVorOrtErhaeltlich === "Ja" && <span title="Nur im Lokal trinkbar, nicht online bestellbar" style={{ ...pille, background: "#6B4E3D" }}>Nur vor Ort</span>}
         {w.nachkaufen === "Ja" && <span style={{ ...pille, background: "#7A2038" }}>Nachkaufen</span>}
         {istMerkliste && <span style={{ ...pille, background: "#3F6E9E" }}>🔖 {w.merklisteArt === "kaufen" ? "Kaufen" : "Trinken"}</span>}
         {linkGueltig(w.link) && (
