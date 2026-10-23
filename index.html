@@ -729,7 +729,7 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
   const preisZahl = /^\s*(ca\.?\s*)?\d[\d.,\s]*$/i.test(String(w.preis ?? "")) ? preisAnzeige(w.preis) : "";
 
   const chip = { display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 600, background: "#2F6B5E", color: "#FFFDF9", borderRadius: 999, padding: "3px 10px", lineHeight: 1.4 };
-  const pille = { display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "#FFFDF9", borderRadius: 999, padding: "2px 9px", lineHeight: 1.5 };
+  const pille = { display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 600, color: "#FFFDF9", borderRadius: 999, padding: "3px 10px", lineHeight: 1.4, whiteSpace: "nowrap" };
   const aktion = { display: "grid", placeItems: "center", width: 32, height: 32, borderRadius: 10, background: "var(--c-f4f1ec)", border: "none", cursor: "pointer", color: "var(--c-7a726b)", padding: 0 };
   const menuBtn = { display: "flex", alignItems: "center", gap: 8, width: "100%", background: "none", border: "none", padding: "10px 14px", fontSize: 13, cursor: "pointer", textAlign: "left", color: "var(--c-4a4038)" };
 
@@ -771,14 +771,14 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
 
       <div style={{ marginTop: "auto", paddingTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-        {w.nachkaufen === "Ja" && <span style={{ ...pille, background: "#7A2038" }}><Cart size={12} color="#FFFDF9" />Nachkaufen</span>}
-        {istMerkliste && <span style={{ ...pille, background: "#3F6E9E" }}>🔖 {w.merklisteArt === "kaufen" ? "Kaufen" : "Trinken"}</span>}
         {w.trinkort && w.merklisteArt !== "kaufen" && (gps ? (
           <button onClick={(e) => { e.stopPropagation(); setKarteOffen((o) => !o); }} title="Ort auf der Karte zeigen"
             style={{ ...chip, border: "none", cursor: "pointer", whiteSpace: "nowrap" }}>
             📍 {w.trinkort} {karteOffen ? "▴" : "▾"}
           </button>
         ) : <span style={{ ...chip, whiteSpace: "nowrap" }}>📍 {w.trinkort}</span>)}
+        {w.nachkaufen === "Ja" && <span style={{ ...pille, background: "#7A2038" }}>Nachkaufen</span>}
+        {istMerkliste && <span style={{ ...pille, background: "#3F6E9E" }}>🔖 {w.merklisteArt === "kaufen" ? "Kaufen" : "Trinken"}</span>}
         {linkGueltig(w.link) && (
           <a href={linkBereinigen(w.link)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
             style={{ ...chip, background: "#7A2038", color: "#FFFDF9", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}>
