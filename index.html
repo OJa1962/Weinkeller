@@ -209,6 +209,14 @@ const Maximize2 = (p) => <Icon {...p}><polyline points="15 3 21 3 21 9" /><polyl
 const WineIcon = (p) => <Icon {...p}><path d="M8 22h8" /><path d="M12 15v7" /><path d="M12 15a6 6 0 0 0 6-6c0-2-1.5-3-1.5-5.5S18 2 18 2H6s1.5 1 1.5 3.5S6 11 6 13a6 6 0 0 0 6 2Z" /></Icon>;
 const Cart = (p) => <Icon {...p}><circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" /></Icon>;
 
+/* ---------- Sortierung merken: Gerät (localStorage) mit Fehlerabfang ---------- */
+function sortierungLokalLesen(key, fallback) {
+  try { return localStorage.getItem("weinkeller_" + key) || fallback; } catch (e) { return fallback; }
+}
+function sortierungLokalSchreiben(key, wert) {
+  try { localStorage.setItem("weinkeller_" + key, wert); } catch (e) {}
+}
+
 /* ---------- Konstanten (unverändert aus der App) ---------- */
 const TYP_COLORS = {
   Rot: "#7A2038",
@@ -830,8 +838,8 @@ function Weinkeller({ onLogout }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [quickText, setQuickText] = useState("");
   const [quickApplied, setQuickApplied] = useState(false);
-  const [sortBy1, setSortBy1] = useState(() => localStorage.getItem("weinkeller_sortBy1") || "land");
-  const [sortBy2, setSortBy2] = useState(() => localStorage.getItem("weinkeller_sortBy2") || "keine");
+  const [sortBy1, setSortBy1] = useState(() => sortierungLokalLesen("sortBy1", "land"));
+  const [sortBy2, setSortBy2] = useState(() => sortierungLokalLesen("sortBy2", "keine"));
   const [filterTyp, setFilterTyp] = useState("Alle");
   const [filterLand, setFilterLand] = useState("Alle");
   const [filterWeingut, setFilterWeingut] = useState("Alle");
@@ -882,12 +890,33 @@ function Weinkeller({ onLogout }) {
 
   // Sortierauswahl im Browser merken, damit die App beim nächsten Öffnen nicht auf die
   // Standard-Sortierung zurückspringt, sondern die zuletzt gewählte Reihenfolge behält.
+  // Die Cloud ist die Hauptquelle (gilt auf allen Geräten); das Gerät merkt sich den Wert zusätzlich.
   useEffect(() => {
-    localStorage.setItem("weinkeller_sortBy1", sortBy1);
-  }, [sortBy1]);
-  useEffect(() => {
-    localStorage.setItem("weinkeller_sortBy2", sortBy2);
-  }, [sortBy2]);
+    if (!fb) return;
+    return fb.onSnapshot(
+      fb.doc(fb.db, "einstellungen", "sortierung"),
+      (snap) => {
+        const d = snap.data();
+        if (!d) return;
+        if (d.sortBy1) setSortBy1(d.sortBy1);
+        if (d.sortBy2) setSortBy2(d.sortBy2);
+      },
+      () => {}
+    );
+  }, [fb]);
+
+  function sortierungAendern(neu) {
+    const a = neu.sortBy1 !== undefined ? neu.sortBy1 : sortBy1;
+    const b = neu.sortBy2 !== undefined ? neu.sortBy2 : sortBy2;
+    setSortBy1(a);
+    setSortBy2(b);
+    sortierungLokalSchreiben("sortBy1", a);
+    sortierungLokalSchreiben("sortBy2", b);
+    if (fb) {
+      fb.setDoc(fb.doc(fb.db, "einstellungen", "sortierung"), { sortBy1: a, sortBy2: b })
+        .catch((e) => console.error(e));
+    }
+  }
 
   // Verbindung zu Firestore aufbauen und live auf Änderungen hören (auch von anderen Geräten)
   useEffect(() => {
@@ -1596,7 +1625,7 @@ function Weinkeller({ onLogout }) {
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
           <div style={{ flex: "1 1 140px" }}>
             <label>Sortieren nach</label>
-            <select value={sortBy1} onChange={(e) => setSortBy1(e.target.value)}>
+            <select value={sortBy1} onChange={(e) => sortierungAendern({ sortBy1: e.target.value })}>
               <option value="land">Land</option>
               <option value="jahrgang">Jahrgang</option>
               <option value="bewertung">Bewertung</option>
@@ -1610,7 +1639,7 @@ function Weinkeller({ onLogout }) {
           </div>
           <div style={{ flex: "1 1 140px" }}>
             <label>dann nach</label>
-            <select value={sortBy2} onChange={(e) => setSortBy2(e.target.value)}>
+            <select value={sortBy2} onChange={(e) => sortierungAendern({ sortBy2: e.target.value })}>
               <option value="keine">— keine —</option>
               <option value="land">Land</option>
               <option value="jahrgang">Jahrgang</option>
