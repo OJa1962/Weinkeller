@@ -208,6 +208,7 @@ const Heart = (p) => <Icon {...p}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5
 const Maximize2 = (p) => <Icon {...p}><polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" /><line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" /></Icon>;
 const WineIcon = (p) => <Icon {...p}><path d="M8 22h8" /><path d="M12 15v7" /><path d="M12 15a6 6 0 0 0 6-6c0-2-1.5-3-1.5-5.5S18 2 18 2H6s1.5 1 1.5 3.5S6 11 6 13a6 6 0 0 0 6 2Z" /></Icon>;
 const Cart = (p) => <Icon {...p}><circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" /></Icon>;
+const Lupe = (p) => <Icon {...p}><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></Icon>;
 
 /* ---------- Sortierung merken: Gerät (localStorage) mit Fehlerabfang ---------- */
 function sortierungLokalLesen(key, fallback) {
@@ -313,7 +314,7 @@ function UnitInput({ value, onChange, onFocus, unit, placeholder, style }) {
 const EMPTY_FORM = {
   id: null, weingut: "", weinname: "", land: "", region: "", jahrgang: "",
   traube: "", alkohol: "", saeure: "", saeureGL: "", typ: "Rot", cremig: "", bezugsquelle: "",
-  alternativeBezugsquelle: "", link: "", merkliste: "", merklisteArt: "", weitereJahrgaenge: "", kritiker: "", sakeReis: "", sakePraefektur: "", sakeKlasse: "", sakePoliergrad: "", sakeSMV: "", sakeTrinktemp: "", haendlerJahrgang: "", nachkaufPreis: "", nachkaufLink: "", ausverkauft: "",
+  alternativeBezugsquelle: "", alternativeLink: "", link: "", merkliste: "", merklisteArt: "", weitereJahrgaenge: "", kritiker: "", sakeReis: "", sakePraefektur: "", sakeKlasse: "", sakePoliergrad: "", sakeSMV: "", sakeTrinktemp: "", haendlerJahrgang: "", nachkaufPreis: "", nachkaufLink: "", ausverkauft: "",
   bewertung: "", wiederkaufen: "", nachkaufen: "", notizen: "", etikettVorne: "",
   favorit: false, favoritBJ: false, preis: "", anzahlFlaschen: "", weinbeschreibung: "", speiseempfehlung: "", hintergrundgeschichte: "", regionBeschreibung: "",
   dekantieren: "", dekantierzeit: "", restaurantName: "", nurVorOrtErhaeltlich: "", trinkort: "", trinkDatum: "", trinkortGPS: "", trinkortAdresse: "", restaurantWebsite: "",
@@ -327,6 +328,7 @@ const FIELD_MAP = {
   typ: "typ", cremig: "cremig", bezugsquelle: "bezugsquelle",
   "alternative bezugsquelle": "alternativeBezugsquelle", "alternative bezugsquelle (online)": "alternativeBezugsquelle",
   "online gefunden bei": "alternativeBezugsquelle", alternativebezugsquelle: "alternativeBezugsquelle",
+  "link online-alternative": "alternativeLink", "alt. link": "alternativeLink", "alternative link": "alternativeLink",
   link: "link", "link (händler)": "link", "link zum angebot": "link", url: "link",
   "händler-jahrgang": "haendlerJahrgang", "haendler-jahrgang": "haendlerJahrgang", "händler jahrgang": "haendlerJahrgang", "haendler jahrgang": "haendlerJahrgang",
   "nachkauf-preis": "nachkaufPreis", "nachkauf preis": "nachkaufPreis",
@@ -694,6 +696,11 @@ function linkBereinigen(s) {
 // Für "Alternative Bezugsquelle (online)" (Freitext) - erkennt anhand des Textes, welcher
 // der bekannten Händler gemeint ist, und grenzt die Suche entsprechend ein, damit ein
 // erneuter Preis-/Verfügbarkeits-Check zielgerichtet ist statt nur allgemein zu suchen.
+// Online-Alternative: hinterlegter Link hat Vorrang, sonst die Suche beim genannten Shop
+function altUrlFuer(w) {
+  return linkGueltig(w.alternativeLink) ? linkBereinigen(w.alternativeLink) : buildAltSearchUrl(w);
+}
+
 function buildAltSearchUrl(w) {
   const query = `${w.weingut || ""} ${w.weinname || ""}`.trim();
   if (!query) return null;
@@ -799,11 +806,15 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
                 style={{ ...chip, background: "#7A2038", color: "#FFFDF9", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}>{inhalt}</a>)
             : (<span style={{ ...chip, background: "#7A2038", color: "#FFFDF9", fontWeight: 600, whiteSpace: "nowrap" }}>{inhalt}</span>);
         })()}
-        {w.alternativeBezugsquelle && (
-          <span title={w.alternativeBezugsquelle} style={{ ...chip, background: "#5B4A7A", color: "#FFFDF9", fontWeight: 600, whiteSpace: "nowrap", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis" }}>
-            Online: {w.alternativeBezugsquelle}
-          </span>
-        )}
+        {w.alternativeBezugsquelle && (() => {
+          const altUrl = altUrlFuer(w);
+          const hatLink = linkGueltig(w.alternativeLink);
+          const inhalt = (<>{hatLink ? <Cart size={13} color="#FFFDF9" /> : <Lupe size={12} color="#FFFDF9" />}Online: {w.alternativeBezugsquelle}</>);
+          const stil = { ...chip, background: "#5B4A7A", color: "#FFFDF9", fontWeight: 600, whiteSpace: "nowrap", textDecoration: "none", maxWidth: "100%" };
+          return altUrl
+            ? (<a href={altUrl} target="_blank" rel="noopener noreferrer" title={hatLink ? "Online-Angebot öffnen" : "Online-Angebot suchen"} onClick={(e) => e.stopPropagation()} style={stil}>{inhalt}</a>)
+            : (<span style={stil}>{inhalt}</span>);
+        })()}
       </div>
         <div style={{ display: "flex", gap: 2, justifyContent: "flex-end", alignItems: "center" }}>
           <button onClick={() => onExpand(w)} title="Vollansicht öffnen" style={{ ...aktion, width: 26, height: 26, background: "transparent" }}><Maximize2 size={14} /></button>
@@ -1384,7 +1395,7 @@ function Weinkeller({ onLogout }) {
       Weingut: w.weingut, Weinname: w.weinname, Land: w.land, Region: w.region,
       Jahrgang: w.jahrgang, Rebsorte: w.traube, "Alkohol (%)": w.alkohol,
       "Säure (1-5)": w.saeure, "Gesamtsäure (g/l)": w.saeureGL, Typ: w.typ, Cremig: w.typ === "Weiß" ? w.cremig : "",
-      "Merkliste-Art": w.merklisteArt, Bezugsquelle: w.bezugsquelle, "Alternative Bezugsquelle (online)": w.alternativeBezugsquelle, "Link (Händler)": w.link, Merkliste: w.merkliste, Kritiker: w.kritiker, "Weitere Jahrgänge (online)": w.weitereJahrgaenge, "Sake Reis": w.sakeReis, "Sake Präfektur": w.sakePraefektur, "Sake Klasse": w.sakeKlasse, "Sake Poliergrad (%)": w.sakePoliergrad, "Sake SMV": w.sakeSMV, "Sake Trinktemperatur": w.sakeTrinktemp, "Händler-Jahrgang": w.haendlerJahrgang, "Nachkauf-Preis (€)": w.nachkaufPreis, "Nachkauf-Link": w.nachkaufLink, "Nachkauf ausverkauft": w.ausverkauft, "Preis (€)": w.preis, "Anzahl Flaschen": w.anzahlFlaschen, "Bewertung (1-10)": w.bewertung,
+      "Merkliste-Art": w.merklisteArt, Bezugsquelle: w.bezugsquelle, "Alternative Bezugsquelle (online)": w.alternativeBezugsquelle, "Link (Online-Alternative)": w.alternativeLink, "Link (Händler)": w.link, Merkliste: w.merkliste, Kritiker: w.kritiker, "Weitere Jahrgänge (online)": w.weitereJahrgaenge, "Sake Reis": w.sakeReis, "Sake Präfektur": w.sakePraefektur, "Sake Klasse": w.sakeKlasse, "Sake Poliergrad (%)": w.sakePoliergrad, "Sake SMV": w.sakeSMV, "Sake Trinktemperatur": w.sakeTrinktemp, "Händler-Jahrgang": w.haendlerJahrgang, "Nachkauf-Preis (€)": w.nachkaufPreis, "Nachkauf-Link": w.nachkaufLink, "Nachkauf ausverkauft": w.ausverkauft, "Preis (€)": w.preis, "Anzahl Flaschen": w.anzahlFlaschen, "Bewertung (1-10)": w.bewertung,
       Weinbeschreibung: w.weinbeschreibung, Speiseempfehlung: w.speiseempfehlung, "Region kurz vorgestellt": w.regionBeschreibung, Hintergrundgeschichte: w.hintergrundgeschichte,
       "Wieder kaufen": w.wiederkaufen, Nachkaufen: w.nachkaufen, Notizen: w.notizen, Favorit: w.favorit ? "Ja" : "Nein", "Favorit BJ": w.favoritBJ ? "Ja" : "Nein",
       Dekantieren: w.dekantieren, "Dekantierzeit (Stunden)": w.dekantierzeit, "Restaurant/Ort": w.restaurantName, "Website Restaurant": w.restaurantWebsite, "Nur vor Ort erhältlich": w.nurVorOrtErhaeltlich,
@@ -1453,7 +1464,7 @@ function Weinkeller({ onLogout }) {
             alkohol: String(r["Alkohol (%)"] || ""), saeure: parseInt(r["Säure (1-5)"], 10) || "",
             saeureGL: String(r["Gesamtsäure (g/l)"] || ""),
             typ: String(r["Typ"] || ""), cremig: String(r["Cremig"] || ""),
-            bezugsquelle: String(r["Bezugsquelle"] || ""), alternativeBezugsquelle: String(r["Alternative Bezugsquelle (online)"] || ""), link: String(r["Link (Händler)"] || ""), merkliste: String(r["Merkliste"] || ""), merklisteArt: String(r["Merkliste-Art"] || ""), kritiker: String(r["Kritiker"] || ""), weitereJahrgaenge: String(r["Weitere Jahrgänge (online)"] || ""), sakeReis: String(r["Sake Reis"] || ""), sakePraefektur: String(r["Sake Präfektur"] || ""), sakeKlasse: String(r["Sake Klasse"] || ""), sakePoliergrad: String(r["Sake Poliergrad (%)"] || ""), sakeSMV: String(r["Sake SMV"] || ""), sakeTrinktemp: String(r["Sake Trinktemperatur"] || ""), haendlerJahrgang: String(r["Händler-Jahrgang"] || ""), nachkaufPreis: String(r["Nachkauf-Preis (€)"] || ""), nachkaufLink: String(r["Nachkauf-Link"] || ""), ausverkauft: String(r["Nachkauf ausverkauft"] || ""), preis: String(r["Preis (€)"] || ""),
+            bezugsquelle: String(r["Bezugsquelle"] || ""), alternativeBezugsquelle: String(r["Alternative Bezugsquelle (online)"] || ""), alternativeLink: String(r["Link (Online-Alternative)"] || ""), link: String(r["Link (Händler)"] || ""), merkliste: String(r["Merkliste"] || ""), merklisteArt: String(r["Merkliste-Art"] || ""), kritiker: String(r["Kritiker"] || ""), weitereJahrgaenge: String(r["Weitere Jahrgänge (online)"] || ""), sakeReis: String(r["Sake Reis"] || ""), sakePraefektur: String(r["Sake Präfektur"] || ""), sakeKlasse: String(r["Sake Klasse"] || ""), sakePoliergrad: String(r["Sake Poliergrad (%)"] || ""), sakeSMV: String(r["Sake SMV"] || ""), sakeTrinktemp: String(r["Sake Trinktemperatur"] || ""), haendlerJahrgang: String(r["Händler-Jahrgang"] || ""), nachkaufPreis: String(r["Nachkauf-Preis (€)"] || ""), nachkaufLink: String(r["Nachkauf-Link"] || ""), ausverkauft: String(r["Nachkauf ausverkauft"] || ""), preis: String(r["Preis (€)"] || ""),
             weinbeschreibung: String(r["Weinbeschreibung"] || ""), speiseempfehlung: String(r["Speiseempfehlung"] || ""),
             hintergrundgeschichte: String(r["Hintergrundgeschichte"] || ""),
             regionBeschreibung: String(r["Region kurz vorgestellt"] || ""),
@@ -1883,7 +1894,7 @@ function Weinkeller({ onLogout }) {
                 dw.bezugsquelle === "Restaurant/Weinbar" ? (
                   <div style={{ marginTop: 6, fontSize: 15, fontWeight: 600, color: "var(--c-7a2038)", display: "flex", alignItems: "center", gap: 6 }}>
                     🔗 Online erhältlich bei: {dw.alternativeBezugsquelle}
-                    <a href={buildAltSearchUrl(dw)} target="_blank" rel="noopener noreferrer"
+                    <a href={altUrlFuer(dw)} target="_blank" rel="noopener noreferrer"
                       title={`${dw.weinname || "Wein"} erneut suchen`}
                       style={{ display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
                       🔎
@@ -1892,7 +1903,7 @@ function Weinkeller({ onLogout }) {
                 ) : (
                   <div style={{ marginTop: 4, fontSize: 14, color: "var(--c-a89c89)", display: "flex", alignItems: "center", gap: 6 }}>
                     🔗 Auch online bei: {dw.alternativeBezugsquelle}
-                    <a href={buildAltSearchUrl(dw)} target="_blank" rel="noopener noreferrer"
+                    <a href={altUrlFuer(dw)} target="_blank" rel="noopener noreferrer"
                       title={`${dw.weinname || "Wein"} erneut suchen`}
                       style={{ display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
                       🔎
@@ -2108,6 +2119,10 @@ function Weinkeller({ onLogout }) {
               <div>
                 <label>Alternative Bezugsquelle (online)</label>
                 <input placeholder="z. B. Tesdorpf – 43,90 €" value={form.alternativeBezugsquelle} onChange={(e) => setForm({ ...form, alternativeBezugsquelle: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.alternativeBezugsquelle)} />
+              </div>
+              <div>
+                <label>Link zur Online-Alternative</label>
+                <input placeholder="https://…" value={form.alternativeLink} onChange={(e) => setForm({ ...form, alternativeLink: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.alternativeLink)} />
               </div>
               <div>
                 <label>Link zum Angebot (Händler)</label>
