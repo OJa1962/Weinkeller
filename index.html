@@ -788,11 +788,21 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
         {w.nurVorOrtErhaeltlich === "Ja" && <span title="Nur im Lokal trinkbar, nicht online bestellbar" style={{ ...pille, background: "#6B4E3D" }}>Nur vor Ort</span>}
         {w.nachkaufen === "Ja" && <span style={{ ...pille, background: "#7A2038" }}>Nachkaufen</span>}
         {istMerkliste && <span style={{ ...pille, background: "#3F6E9E" }}>🔖 {w.merklisteArt === "kaufen" ? "Kaufen" : "Trinken"}</span>}
-        {linkGueltig(w.link) && (
-          <a href={linkBereinigen(w.link)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
-            style={{ ...chip, background: "#7A2038", color: "#FFFDF9", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}>
-            <Cart size={13} color="#FFFDF9" />{haendlerAusLink(w.link)}
-          </a>
+        {(() => {
+          // Bezug: Einkaufswagen immer, wenn eine Bezugsquelle eingetragen ist (Einzelhandel, Webshop).
+          // Ist ein Link zum Angebot hinterlegt, ist der Banner anklickbar.
+          const bezugBeschriftung = w.bezugsquelle && w.bezugsquelle !== "Restaurant/Weinbar" ? w.bezugsquelle : (linkGueltig(w.link) ? haendlerAusLink(w.link) : "");
+          if (!bezugBeschriftung) return null;
+          const inhalt = (<><Cart size={13} color="#FFFDF9" />{bezugBeschriftung}</>);
+          return linkGueltig(w.link)
+            ? (<a href={linkBereinigen(w.link)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                style={{ ...chip, background: "#7A2038", color: "#FFFDF9", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}>{inhalt}</a>)
+            : (<span style={{ ...chip, background: "#7A2038", color: "#FFFDF9", fontWeight: 600, whiteSpace: "nowrap" }}>{inhalt}</span>);
+        })()}
+        {w.alternativeBezugsquelle && (
+          <span title={w.alternativeBezugsquelle} style={{ ...chip, background: "#5B4A7A", color: "#FFFDF9", fontWeight: 600, whiteSpace: "nowrap", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis" }}>
+            Online: {w.alternativeBezugsquelle}
+          </span>
         )}
       </div>
         <div style={{ display: "flex", gap: 2, justifyContent: "flex-end", alignItems: "center" }}>
