@@ -552,7 +552,15 @@ function buildShopSearchUrl(w) {
 }
 
 // Zeile für den anderen Jahrgang beim Händler (Orientierung). Erscheint immer, sobald gefüllt.
+// Der Anderer-Jahrgang-Hinweis gilt nur, wenn der erfasste Jahrgang bei keinem Händler gelistet ist.
+// Das erkennt die App daran, dass keine Bezugsquelle eingetragen ist (Restaurant/Unbekannt zählen als "nicht gelistet").
+function anderJahrgangRelevant(w) {
+  const bz = String(w.bezugsquelle || "").trim();
+  return !bz || bz === "Restaurant/Weinbar" || bz === "Unbekannt";
+}
+
 function NachkaufZeile({ w, big }) {
+  if (!anderJahrgangRelevant(w)) return null;
   const jahr = String(w.haendlerJahrgang || "").trim();
   const preis = preisAnzeige(w.nachkaufPreis);
   const link = linkGueltig(w.nachkaufLink);
@@ -829,6 +837,23 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
           return altUrl
             ? (<a href={altUrl} target="_blank" rel="noopener noreferrer" title={hatLink ? "Online-Angebot öffnen" : "Online-Angebot suchen"} onClick={(e) => e.stopPropagation()} style={stil}>{inhalt}</a>)
             : (<span title={beschriftung} style={stil}>{inhalt}</span>);
+        })()}
+        {(() => {
+          // Anderer Jahrgang beim Händler (nur Orientierung): Preis steht vorne, Jahrgang dahinter.
+          // Gestrichelt, damit er sich vom festen Online-Angebot unterscheidet.
+          if (!anderJahrgangRelevant(w)) return null;
+          const jahr = String(w.haendlerJahrgang || "").trim();
+          const preis = preisAnzeige(w.nachkaufPreis);
+          if (!jahr && !preis) return null;
+          const aus = w.ausverkauft === "Ja";
+          const link = linkGueltig(w.nachkaufLink) && !aus;
+          const teile = [preis, jahr ? `Jg. ${jahr}` : ""].filter(Boolean).join(" · ");
+          const titel = `Anderer Jahrgang beim Händler (Orientierung)${aus ? " – ausverkauft" : ""}`;
+          const stil = { display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 600, background: "transparent", color: aus ? "var(--c-8a8075)" : "#7D6A9E", border: `1px dashed ${aus ? "var(--c-8a8075)" : "#7D6A9E"}`, borderRadius: 999, padding: "2px 9px", lineHeight: 1.4, whiteSpace: "nowrap", textDecoration: "none", maxWidth: "100%", minWidth: 0 };
+          const inhalt = (<>{link ? <Cart size={13} color={aus ? "var(--c-8a8075)" : "#7D6A9E"} /> : <span>📅</span>}<span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, textDecoration: aus ? "line-through" : "none" }}>{teile || "anderer Jahrgang"}{aus ? " · ausverkauft" : ""}</span></>);
+          return link
+            ? (<a href={linkBereinigen(w.nachkaufLink)} target="_blank" rel="noopener noreferrer" title={titel} onClick={(e) => e.stopPropagation()} style={stil}>{inhalt}</a>)
+            : (<span title={titel} style={stil}>{inhalt}</span>);
         })()}
       </div>
         <div style={{ display: "flex", gap: 2, justifyContent: "flex-end", alignItems: "center" }}>
