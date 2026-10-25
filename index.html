@@ -711,8 +711,40 @@ function altPreisUndHaendler(text) {
   const t = String(text || "");
   const m = t.match(/(\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d+(?:[.,]\d{1,2})?)\s*€/);
   if (!m) return null;
-  const haendler = t.slice(0, m.index).replace(/[\s–—\-:·,|]+$/, "").replace(/^[\s–—\-:·,|]+/, "");
-  return { preis: `${m[1]} €`, haendler: haendler || "Online" };
+  let haendler = t.slice(0, m.index).replace(/[\s–—\-:·,|]+$/, "").replace(/^[\s–—\-:·,|]+/, "");
+  // Optionaler Jahrgang in Klammern direkt nach dem Händler, z. B. "Tesdorpf (2021): 43,90 €".
+  const jm = haendler.match(/\((\d{4})\)/);
+  const jahrgang = jm ? jm[1] : "";
+  if (jm) haendler = haendler.replace(/\s*\(\d{4}\)/, "").trim();
+  return { preis: `${m[1]} €`, haendler: haendler || "Online", jahrgang };
+}
+
+// Zahl aus "64 €", "1.760,55 €" oder "62,91" für den Vergleich.
+function zahlAusText(t) {
+  const m = String(t || "").match(/\d{1,3}(?:\.\d{3})*(?:,\d{1,2})?|\d+(?:[.,]\d{1,2})?/);
+  if (!m) return NaN;
+  return parseFloat(m[0].replace(/\./g, "").replace(",", "."));
+}
+
+// Doppelt oder unbrauchbar: Die Alternative ist nur ein Preis ohne Händlernamen ("Preis: 64 €"),
+// oder sie nennt denselben Shop zum selben Preis wie die Bezugsquelle.
+function altIstDublette(w) {
+  const pi = altPreisUndHaendler(w.alternativeBezugsquelle);
+  if (!pi) return false;
+  if (!pi.haendler || /^(preis|price|online|ca\.?)$/i.test(pi.haendler)) return true;
+  // Anderer Jahrgang im Eintrag: nie ausblenden, denn der Eintrag beschreibt einen anderen Wein.
+  const eigenerJahr = String(w.jahrgang || "").trim();
+  if (pi.jahrgang && eigenerJahr && pi.jahrgang !== eigenerJahr) return false;
+  const a = pi.haendler.toLowerCase();
+  const b = String(w.bezugsquelle || "").trim().toLowerCase();
+  const gleicherShop = !!b && (a.includes(b) || b.includes(a));
+  const gleicherPreis = zahlAusText(pi.preis) === zahlAusText(w.preis);
+  return gleicherShop && gleicherPreis;
+}
+
+// Alternative verbergen, wenn sie doppelt oder unbrauchbar ist. Ein gültiger Link bleibt erhalten.
+function altVerbergen(w) {
+  return altIstDublette(w) && !linkGueltig(w.alternativeLink);
 }
 
 function altUrlFuer(w) {
@@ -824,13 +856,13 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
                 style={{ ...chip, background: "#7A2038", color: "#FFFDF9", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}>{inhalt}</a>)
             : (<span style={{ ...chip, background: "#7A2038", color: "#FFFDF9", fontWeight: 600, whiteSpace: "nowrap" }}>{inhalt}</span>);
         })()}
-        {(w.alternativeBezugsquelle || linkGueltig(w.alternativeLink)) && (() => {
+        {(w.alternativeBezugsquelle || linkGueltig(w.alternativeLink)) && !altVerbergen(w) && (() => {
           // Online-Alternative: Banner immer, sobald Text oder Link vorhanden ist.
           // Mit Link: anklickbar zum Angebot. Ohne Link: Suche beim genannten Shop.
           const altUrl = altUrlFuer(w);
           const hatLink = linkGueltig(w.alternativeLink);
           const pi = altPreisUndHaendler(w.alternativeBezugsquelle);
-          const beschriftung = pi ? `${pi.preis} · ${pi.haendler}` : (w.alternativeBezugsquelle || haendlerAusLink(w.alternativeLink));
+          const beschriftung = pi ? `${pi.preis} · ${pi.haendler}${pi.jahrgang ? ` (${pi.jahrgang})` : ""}` : (w.alternativeBezugsquelle || haendlerAusLink(w.alternativeLink));
           // Mit Preisindikation: Preis steht vorne, damit er auch bei langem Text sichtbar bleibt.
           const inhalt = (<>{hatLink ? <Cart size={13} color="#FFFDF9" /> : <Lupe size={13} color="#FFFDF9" />}<span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{pi ? beschriftung : `Online: ${beschriftung}`}</span></>);
           const stil = { ...chip, background: "#5B4A7A", color: "#FFFDF9", fontWeight: 600, whiteSpace: "nowrap", textDecoration: "none", maxWidth: "100%", minWidth: 0 };
@@ -1937,7 +1969,7 @@ function Weinkeller({ onLogout }) {
               {dw.typ === "Sake" && <SakeZeile w={dw} big />}
               <WeitereJahrgaengeZeile w={dw} big />
               <NachkaufZeile w={dw} big />
-              {(dw.alternativeBezugsquelle || linkGueltig(dw.alternativeLink)) && (
+              {(dw.alternativeBezugsquelle || linkGueltig(dw.alternativeLink)) && !altVerbergen(dw) && (
                 dw.bezugsquelle === "Restaurant/Weinbar" ? (
                   <div style={{ marginTop: 6, fontSize: 15, fontWeight: 600, color: "var(--c-7a2038)", display: "flex", alignItems: "center", gap: 6 }}>
                     🔗 Online erhältlich bei: {dw.alternativeBezugsquelle || haendlerAusLink(dw.alternativeLink)}
