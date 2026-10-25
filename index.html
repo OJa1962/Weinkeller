@@ -834,7 +834,7 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
         {[w.alkohol && `${w.alkohol} % Vol.`, w.anzahlFlaschen && `🍾 ${w.anzahlFlaschen} ${String(w.anzahlFlaschen) === "1" ? "Flasche" : "Flaschen"}`].filter(Boolean).join(" · ")}
       </div>
 
-      <div style={{ marginTop: "auto", paddingTop: 10, minHeight: 150, display: "flex", flexDirection: "column", justifyContent: "flex-start", gap: 8 }}>
+      <div style={{ marginTop: "auto", paddingTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
         {w.trinkort && w.merklisteArt !== "kaufen" && (gps ? (
           <button onClick={(e) => { e.stopPropagation(); setKarteOffen((o) => !o); }} title="Ort auf der Karte zeigen"
@@ -842,8 +842,6 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
             📍 {w.trinkort} {karteOffen ? "▴" : "▾"}
           </button>
         ) : <span style={{ ...chip, whiteSpace: "nowrap" }}>📍 {w.trinkort}</span>)}
-        {w.nurVorOrtErhaeltlich === "Ja" && <span title="Nur im Lokal trinkbar, nicht online bestellbar" style={{ ...pille, background: "#6B4E3D" }}>Nur vor Ort</span>}
-        {istMerkliste && <span style={{ ...pille, background: "#3F6E9E" }}>🔖 {w.merklisteArt === "kaufen" ? "Kaufen" : "Trinken"}</span>}
         {(() => {
           // Bezug: Einkaufswagen immer, wenn eine Bezugsquelle eingetragen ist (Einzelhandel, Webshop).
           // Ist ein Link zum Angebot hinterlegt, ist der Banner anklickbar.
@@ -855,8 +853,22 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
                 style={{ ...chip, background: "#7A2038", color: "#FFFDF9", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}>{inhalt}</a>)
             : (<span style={{ ...chip, background: "#7A2038", color: "#FFFDF9", fontWeight: 600, whiteSpace: "nowrap" }}>{inhalt}</span>);
         })()}
-        </div>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", minHeight: 26 }}>
+        {w.nurVorOrtErhaeltlich === "Ja" && <span title="Nur im Lokal trinkbar, nicht online bestellbar" style={{ ...pille, background: "#6B4E3D" }}>Nur vor Ort</span>}
+        {istMerkliste && <span style={{ ...pille, background: "#3F6E9E" }}>🔖 {w.merklisteArt === "kaufen" ? "Kaufen" : "Trinken"}</span>}
+        {(w.alternativeBezugsquelle || linkGueltig(w.alternativeLink)) && !altVerbergen(w) && (() => {
+          // Online-Alternative: Banner immer, sobald Text oder Link vorhanden ist.
+          // Mit Link: anklickbar zum Angebot. Ohne Link: Suche beim genannten Shop.
+          const altUrl = altUrlFuer(w);
+          const hatLink = linkGueltig(w.alternativeLink);
+          const pi = altPreisUndHaendler(w.alternativeBezugsquelle);
+          const beschriftung = pi ? `${pi.preis} · ${pi.haendler}${pi.jahrgang ? ` (${pi.jahrgang})` : ""}` : (w.alternativeBezugsquelle || haendlerAusLink(w.alternativeLink));
+          // Mit Preisindikation: Preis steht vorne, damit er auch bei langem Text sichtbar bleibt.
+          const inhalt = (<>{hatLink ? <Cart size={13} color="#FFFDF9" /> : <Lupe size={13} color="#FFFDF9" />}<span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{pi ? beschriftung : `Online: ${beschriftung}`}</span></>);
+          const stil = { ...chip, background: "#5B4A7A", color: "#FFFDF9", fontWeight: 600, whiteSpace: "nowrap", textDecoration: "none", maxWidth: "100%", minWidth: 0 };
+          return altUrl
+            ? (<a href={altUrl} target="_blank" rel="noopener noreferrer" title={hatLink ? "Online-Angebot öffnen" : "Online-Angebot suchen"} onClick={(e) => e.stopPropagation()} style={stil}>{inhalt}</a>)
+            : (<span title={beschriftung} style={stil}>{inhalt}</span>);
+        })()}
         {w.nachkaufen === "Ja" && <span style={{ ...pille, background: "transparent", color: NACHKAUF_FARBE, border: `1px dashed ${NACHKAUF_FARBE}`, padding: "2px 9px" }}>Nachkaufen</span>}
         {(() => {
           // Anderer Jahrgang beim Händler (nur Orientierung): Preis steht vorne, Jahrgang dahinter.
@@ -873,22 +885,6 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
           return link
             ? (<a href={linkBereinigen(w.nachkaufLink)} target="_blank" rel="noopener noreferrer" title={titel} onClick={(e) => e.stopPropagation()} style={stil}>{inhalt}</a>)
             : (<span title={titel} style={stil}>{inhalt}</span>);
-        })()}
-        </div>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", minHeight: 26 }}>
-        {(w.alternativeBezugsquelle || linkGueltig(w.alternativeLink)) && !altVerbergen(w) && (() => {
-          // Online-Alternative: Banner immer, sobald Text oder Link vorhanden ist.
-          // Mit Link: anklickbar zum Angebot. Ohne Link: Suche beim genannten Shop.
-          const altUrl = altUrlFuer(w);
-          const hatLink = linkGueltig(w.alternativeLink);
-          const pi = altPreisUndHaendler(w.alternativeBezugsquelle);
-          const beschriftung = pi ? `${pi.preis} · ${pi.haendler}${pi.jahrgang ? ` (${pi.jahrgang})` : ""}` : (w.alternativeBezugsquelle || haendlerAusLink(w.alternativeLink));
-          // Mit Preisindikation: Preis steht vorne, damit er auch bei langem Text sichtbar bleibt.
-          const inhalt = (<>{hatLink ? <Cart size={13} color="#FFFDF9" /> : <Lupe size={13} color="#FFFDF9" />}<span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{pi ? beschriftung : `Online: ${beschriftung}`}</span></>);
-          const stil = { ...chip, background: "#5B4A7A", color: "#FFFDF9", fontWeight: 600, whiteSpace: "nowrap", textDecoration: "none", maxWidth: "100%", minWidth: 0 };
-          return altUrl
-            ? (<a href={altUrl} target="_blank" rel="noopener noreferrer" title={hatLink ? "Online-Angebot öffnen" : "Online-Angebot suchen"} onClick={(e) => e.stopPropagation()} style={stil}>{inhalt}</a>)
-            : (<span title={beschriftung} style={stil}>{inhalt}</span>);
         })()}
       </div>
         <div style={{ display: "flex", gap: 2, justifyContent: "flex-end", alignItems: "center" }}>
