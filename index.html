@@ -834,7 +834,7 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
         {[w.alkohol && `${w.alkohol} % Vol.`, w.anzahlFlaschen && `🍾 ${w.anzahlFlaschen} ${String(w.anzahlFlaschen) === "1" ? "Flasche" : "Flaschen"}`].filter(Boolean).join(" · ")}
       </div>
 
-      <div style={{ marginTop: "auto", paddingTop: 10, minHeight: 74, display: "flex", flexDirection: "column", justifyContent: "flex-start", gap: 8 }}>
+      <div style={{ marginTop: "auto", paddingTop: 10, minHeight: 110, display: "flex", flexDirection: "column", justifyContent: "flex-start", gap: 8 }}>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
         {w.trinkort && w.merklisteArt !== "kaufen" && (gps ? (
           <button onClick={(e) => { e.stopPropagation(); setKarteOffen((o) => !o); }} title="Ort auf der Karte zeigen"
@@ -856,6 +856,8 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
                 style={{ ...chip, background: "#7A2038", color: "#FFFDF9", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}>{inhalt}</a>)
             : (<span style={{ ...chip, background: "#7A2038", color: "#FFFDF9", fontWeight: 600, whiteSpace: "nowrap" }}>{inhalt}</span>);
         })()}
+        </div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", minHeight: 26 }}>
         {(w.alternativeBezugsquelle || linkGueltig(w.alternativeLink)) && !altVerbergen(w) && (() => {
           // Online-Alternative: Banner immer, sobald Text oder Link vorhanden ist.
           // Mit Link: anklickbar zum Angebot. Ohne Link: Suche beim genannten Shop.
