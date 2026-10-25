@@ -806,14 +806,17 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
                 style={{ ...chip, background: "#7A2038", color: "#FFFDF9", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}>{inhalt}</a>)
             : (<span style={{ ...chip, background: "#7A2038", color: "#FFFDF9", fontWeight: 600, whiteSpace: "nowrap" }}>{inhalt}</span>);
         })()}
-        {w.alternativeBezugsquelle && (() => {
+        {(w.alternativeBezugsquelle || linkGueltig(w.alternativeLink)) && (() => {
+          // Online-Alternative: Banner immer, sobald Text oder Link vorhanden ist.
+          // Mit Link: anklickbar zum Angebot. Ohne Link: Suche beim genannten Shop.
           const altUrl = altUrlFuer(w);
           const hatLink = linkGueltig(w.alternativeLink);
-          const inhalt = (<>{hatLink ? <Cart size={13} color="#FFFDF9" /> : <Lupe size={12} color="#FFFDF9" />}Online: {w.alternativeBezugsquelle}</>);
-          const stil = { ...chip, background: "#5B4A7A", color: "#FFFDF9", fontWeight: 600, whiteSpace: "nowrap", textDecoration: "none", maxWidth: "100%" };
+          const beschriftung = w.alternativeBezugsquelle || haendlerAusLink(w.alternativeLink);
+          const inhalt = (<>{hatLink ? <Cart size={13} color="#FFFDF9" /> : <Lupe size={13} color="#FFFDF9" />}<span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>Online: {beschriftung}</span></>);
+          const stil = { ...chip, background: "#5B4A7A", color: "#FFFDF9", fontWeight: 600, whiteSpace: "nowrap", textDecoration: "none", maxWidth: "100%", minWidth: 0 };
           return altUrl
             ? (<a href={altUrl} target="_blank" rel="noopener noreferrer" title={hatLink ? "Online-Angebot öffnen" : "Online-Angebot suchen"} onClick={(e) => e.stopPropagation()} style={stil}>{inhalt}</a>)
-            : (<span style={stil}>{inhalt}</span>);
+            : (<span title={beschriftung} style={stil}>{inhalt}</span>);
         })()}
       </div>
         <div style={{ display: "flex", gap: 2, justifyContent: "flex-end", alignItems: "center" }}>
@@ -1821,7 +1824,7 @@ function Weinkeller({ onLogout }) {
         return (
           <div onClick={() => setDetailWine(null)} style={{ position: "fixed", inset: 0, background: "rgba(43,35,32,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 60, padding: 20 }}>
             <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--c-ffffff)", width: "100%", maxWidth: 640, maxHeight: "88vh", overflowY: "auto", borderRadius: 16, padding: 26, position: "relative", borderTop: `6px solid ${TYP_COLORS[dw.typ] || "#7A2038"}` }}>
-              <button onClick={() => setDetailWine(null)} style={{ position: "absolute", top: 16, right: 16, background: "var(--c-f5f0e6)", border: "none", borderRadius: "50%", width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--c-7a6f63)" }}>
+              <button onClick={() => setDetailWine(null)} style={{ position: "absolute", top: 16, right: 16, background: "var(--c-efe6d3)", border: "none", borderRadius: "50%", width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--c-211d1a)" }}>
                 <X size={18} />
               </button>
 
@@ -1890,10 +1893,10 @@ function Weinkeller({ onLogout }) {
               {dw.typ === "Sake" && <SakeZeile w={dw} big />}
               <WeitereJahrgaengeZeile w={dw} big />
               <NachkaufZeile w={dw} big />
-              {dw.alternativeBezugsquelle && (
+              {(dw.alternativeBezugsquelle || linkGueltig(dw.alternativeLink)) && (
                 dw.bezugsquelle === "Restaurant/Weinbar" ? (
                   <div style={{ marginTop: 6, fontSize: 15, fontWeight: 600, color: "var(--c-7a2038)", display: "flex", alignItems: "center", gap: 6 }}>
-                    🔗 Online erhältlich bei: {dw.alternativeBezugsquelle}
+                    🔗 Online erhältlich bei: {dw.alternativeBezugsquelle || haendlerAusLink(dw.alternativeLink)}
                     <a href={altUrlFuer(dw)} target="_blank" rel="noopener noreferrer"
                       title={`${dw.weinname || "Wein"} erneut suchen`}
                       style={{ display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
@@ -1902,7 +1905,7 @@ function Weinkeller({ onLogout }) {
                   </div>
                 ) : (
                   <div style={{ marginTop: 4, fontSize: 14, color: "var(--c-a89c89)", display: "flex", alignItems: "center", gap: 6 }}>
-                    🔗 Auch online bei: {dw.alternativeBezugsquelle}
+                    🔗 Auch online bei: {dw.alternativeBezugsquelle || haendlerAusLink(dw.alternativeLink)}
                     <a href={altUrlFuer(dw)} target="_blank" rel="noopener noreferrer"
                       title={`${dw.weinname || "Wein"} erneut suchen`}
                       style={{ display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
