@@ -834,7 +834,7 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
         {[w.alkohol && `${w.alkohol} % Vol.`, w.anzahlFlaschen && `🍾 ${w.anzahlFlaschen} ${String(w.anzahlFlaschen) === "1" ? "Flasche" : "Flaschen"}`].filter(Boolean).join(" · ")}
       </div>
 
-      <div style={{ marginTop: "auto", paddingTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ marginTop: "auto", paddingTop: 10, minHeight: 112, display: "flex", flexDirection: "column", justifyContent: "flex-start", gap: 8 }}>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
         {w.trinkort && w.merklisteArt !== "kaufen" && (gps ? (
           <button onClick={(e) => { e.stopPropagation(); setKarteOffen((o) => !o); }} title="Ort auf der Karte zeigen"
@@ -887,7 +887,7 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
             : (<span title={titel} style={stil}>{inhalt}</span>);
         })()}
       </div>
-        <div style={{ display: "flex", gap: 2, justifyContent: "flex-end", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 2, justifyContent: "flex-end", alignItems: "center", marginTop: "auto" }}>
           <button onClick={() => onExpand(w)} title="Vollansicht öffnen" style={{ ...aktion, width: 26, height: 26, background: "transparent" }}><Maximize2 size={14} /></button>
           <button onClick={() => onToggleFavorit(w.id)} title="Favorit" style={{ ...aktion, width: 26, height: 26, background: "transparent", color: w.favorit ? "#C9A961" : "#B9B0A3" }}><Star size={15} fill={w.favorit ? "#C9A961" : "none"} /></button>
           <button onClick={() => onToggleFavoritBJ(w.id)} title="Favorit BJ" style={{ ...aktion, width: 26, height: 26, background: "transparent", color: w.favoritBJ ? "#B0453F" : "#B9B0A3" }}><Heart size={14} fill={w.favoritBJ ? "#B0453F" : "none"} /></button>
