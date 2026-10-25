@@ -834,7 +834,7 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
         {[w.alkohol && `${w.alkohol} % Vol.`, w.anzahlFlaschen && `🍾 ${w.anzahlFlaschen} ${String(w.anzahlFlaschen) === "1" ? "Flasche" : "Flaschen"}`].filter(Boolean).join(" · ")}
       </div>
 
-      <div style={{ marginTop: "auto", paddingTop: 10, minHeight: 110, display: "flex", flexDirection: "column", justifyContent: "flex-start", gap: 8 }}>
+      <div style={{ marginTop: "auto", paddingTop: 10, minHeight: 150, display: "flex", flexDirection: "column", justifyContent: "flex-start", gap: 8 }}>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
         {w.trinkort && w.merklisteArt !== "kaufen" && (gps ? (
           <button onClick={(e) => { e.stopPropagation(); setKarteOffen((o) => !o); }} title="Ort auf der Karte zeigen"
@@ -843,7 +843,6 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
           </button>
         ) : <span style={{ ...chip, whiteSpace: "nowrap" }}>📍 {w.trinkort}</span>)}
         {w.nurVorOrtErhaeltlich === "Ja" && <span title="Nur im Lokal trinkbar, nicht online bestellbar" style={{ ...pille, background: "#6B4E3D" }}>Nur vor Ort</span>}
-        {w.nachkaufen === "Ja" && <span style={{ ...pille, background: "transparent", color: NACHKAUF_FARBE, border: `1px dashed ${NACHKAUF_FARBE}`, padding: "2px 9px" }}>Nachkaufen</span>}
         {istMerkliste && <span style={{ ...pille, background: "#3F6E9E" }}>🔖 {w.merklisteArt === "kaufen" ? "Kaufen" : "Trinken"}</span>}
         {(() => {
           // Bezug: Einkaufswagen immer, wenn eine Bezugsquelle eingetragen ist (Einzelhandel, Webshop).
@@ -855,6 +854,25 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
             ? (<a href={linkBereinigen(w.link)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
                 style={{ ...chip, background: "#7A2038", color: "#FFFDF9", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}>{inhalt}</a>)
             : (<span style={{ ...chip, background: "#7A2038", color: "#FFFDF9", fontWeight: 600, whiteSpace: "nowrap" }}>{inhalt}</span>);
+        })()}
+        </div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", minHeight: 26 }}>
+        {w.nachkaufen === "Ja" && <span style={{ ...pille, background: "transparent", color: NACHKAUF_FARBE, border: `1px dashed ${NACHKAUF_FARBE}`, padding: "2px 9px" }}>Nachkaufen</span>}
+        {(() => {
+          // Anderer Jahrgang beim Händler (nur Orientierung): Preis steht vorne, Jahrgang dahinter.
+          // Gestrichelt, damit er sich vom festen Online-Angebot unterscheidet.
+                  const jahr = String(w.haendlerJahrgang || "").trim();
+          const preis = preisAnzeige(w.nachkaufPreis);
+          if (!jahr && !preis) return null;
+          const aus = w.ausverkauft === "Ja";
+          const link = linkGueltig(w.nachkaufLink) && !aus;
+          const teile = [preis, jahr ? `Jg. ${jahr}` : ""].filter(Boolean).join(" · ");
+          const titel = `Anderer Jahrgang beim Händler (Orientierung)${aus ? " – ausverkauft" : ""}`;
+          const stil = { display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 600, background: "transparent", color: NACHKAUF_FARBE, border: `1px dashed ${NACHKAUF_FARBE}`, borderRadius: 999, padding: "2px 9px", lineHeight: 1.4, whiteSpace: "nowrap", textDecoration: "none", maxWidth: "100%", minWidth: 0 };
+          const inhalt = (<>{link ? <Cart size={13} color={NACHKAUF_FARBE} /> : <span>📅</span>}<span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, textDecoration: aus ? "line-through" : "none" }}>{teile || "anderer Jahrgang"}{aus ? " · ausverkauft" : ""}</span></>);
+          return link
+            ? (<a href={linkBereinigen(w.nachkaufLink)} target="_blank" rel="noopener noreferrer" title={titel} onClick={(e) => e.stopPropagation()} style={stil}>{inhalt}</a>)
+            : (<span title={titel} style={stil}>{inhalt}</span>);
         })()}
         </div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", minHeight: 26 }}>
@@ -871,22 +889,6 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
           return altUrl
             ? (<a href={altUrl} target="_blank" rel="noopener noreferrer" title={hatLink ? "Online-Angebot öffnen" : "Online-Angebot suchen"} onClick={(e) => e.stopPropagation()} style={stil}>{inhalt}</a>)
             : (<span title={beschriftung} style={stil}>{inhalt}</span>);
-        })()}
-        {(() => {
-          // Anderer Jahrgang beim Händler (nur Orientierung): Preis steht vorne, Jahrgang dahinter.
-          // Gestrichelt, damit er sich vom festen Online-Angebot unterscheidet.
-                  const jahr = String(w.haendlerJahrgang || "").trim();
-          const preis = preisAnzeige(w.nachkaufPreis);
-          if (!jahr && !preis) return null;
-          const aus = w.ausverkauft === "Ja";
-          const link = linkGueltig(w.nachkaufLink) && !aus;
-          const teile = [preis, jahr ? `Jg. ${jahr}` : ""].filter(Boolean).join(" · ");
-          const titel = `Anderer Jahrgang beim Händler (Orientierung)${aus ? " – ausverkauft" : ""}`;
-          const stil = { display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 600, background: "transparent", color: NACHKAUF_FARBE, border: `1px dashed ${NACHKAUF_FARBE}`, borderRadius: 999, padding: "2px 9px", lineHeight: 1.4, whiteSpace: "nowrap", textDecoration: "none", maxWidth: "100%", minWidth: 0 };
-          const inhalt = (<>{link ? <Cart size={13} color={NACHKAUF_FARBE} /> : <span>📅</span>}<span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, textDecoration: aus ? "line-through" : "none" }}>{teile || "anderer Jahrgang"}{aus ? " · ausverkauft" : ""}</span></>);
-          return link
-            ? (<a href={linkBereinigen(w.nachkaufLink)} target="_blank" rel="noopener noreferrer" title={titel} onClick={(e) => e.stopPropagation()} style={stil}>{inhalt}</a>)
-            : (<span title={titel} style={stil}>{inhalt}</span>);
         })()}
       </div>
         <div style={{ display: "flex", gap: 2, justifyContent: "flex-end", alignItems: "center" }}>
