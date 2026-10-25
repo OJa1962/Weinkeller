@@ -552,6 +552,14 @@ function buildShopSearchUrl(w) {
 }
 
 // Zeile für den anderen Jahrgang beim Händler (Orientierung). Erscheint immer, sobald gefüllt.
+// Gibt es Nachkauf-Daten (anderer Jahrgang oder weitere Jahrgänge)?
+function nachkaufVorhanden(w) {
+  return !!(String(w.haendlerJahrgang || "").trim() || preisAnzeige(w.nachkaufPreis) || linkGueltig(w.nachkaufLink) || w.ausverkauft === "Ja" || weitereListe(w.weitereJahrgaenge).length);
+}
+
+// Einheitliche Farbe für alle Nachkauf-Informationen (wie der gestrichelte Banner auf der Kachel).
+const NACHKAUF_FARBE = "#7D6A9E";
+
 function NachkaufZeile({ w, big }) {
   const jahr = String(w.haendlerJahrgang || "").trim();
   const preis = preisAnzeige(w.nachkaufPreis);
@@ -561,12 +569,12 @@ function NachkaufZeile({ w, big }) {
   const teile = [jahr, preis].filter(Boolean).join(" · ");
   const label = teile ? `📅 Beim Händler: ${teile} (Orientierung)` : "📅 Anderer Jahrgang beim Händler";
   return (
-    <div style={{ marginTop: 6, fontSize: big ? 14 : 12.5, color: "var(--c-4a4038)", display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
+    <div style={{ marginTop: 6, fontSize: big ? 15 : 12.5, color: NACHKAUF_FARBE, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
       <span>{label}</span>
-      {ausverkauft && <span style={{ fontWeight: 700, color: "#B0453F" }}>ausverkauft</span>}
+      {ausverkauft && <span style={{ fontWeight: 700, textDecoration: "line-through" }}>ausverkauft</span>}
       {link && (
         <a href={linkBereinigen(w.nachkaufLink)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
-          style={{ color: "var(--c-7a2038)", fontWeight: 600, textDecoration: "underline" }}>🛒 Nachkauf</a>
+          style={{ color: NACHKAUF_FARBE, fontWeight: 600, textDecoration: "underline" }}>🛒 Zum Angebot</a>
       )}
     </div>
   );
@@ -610,18 +618,18 @@ function WeitereJahrgaengeZeile({ w, big }) {
   const eintraege = weitereListe(w.weitereJahrgaenge);
   if (!eintraege.length) return null;
   return (
-    <div style={{ marginTop: 6, fontSize: big ? 14 : 12.5, color: "var(--c-4a4038)" }}>
-      <div style={{ fontWeight: 600, marginBottom: 2 }}>📚 Weitere Jahrgänge online (Orientierung):</div>
+    <div style={{ marginTop: 6, fontSize: big ? 15 : 12.5, color: NACHKAUF_FARBE }}>
+      <div style={{ fontWeight: 600, marginBottom: 2 }}>📚 Weitere Jahrgänge online:</div>
       {eintraege.map((e, i) => {
         const url = (e.match(/https?:\/\/\S+/) || [])[0];
         const text = url ? e.replace(url, "").replace(/\s*·\s*$/, "").trim() : e;
         const aus = /ausverkauft/i.test(e);
         return (
-          <div key={i} style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginTop: 2, color: aus ? "var(--c-8a8075)" : "var(--c-4a4038)", textDecoration: aus ? "line-through" : "none" }}>
-            <span>{text}</span>
+          <div key={i} style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginTop: 2, color: NACHKAUF_FARBE, textDecoration: aus ? "line-through" : "none" }}>
+            <span>{text.split(" · ").map((t, i) => (i === 2 && /^\s*(ca\.?\s*)?\d[\d.,\s]*$/i.test(t) ? preisAnzeige(t) : t)).join(" · ")}</span>
             {url && linkGueltig(url) && (
               <a href={linkBereinigen(url)} target="_blank" rel="noopener noreferrer" onClick={(ev) => ev.stopPropagation()}
-                style={{ color: "var(--c-7a2038)", fontWeight: 600, textDecoration: "underline" }}>🛒 {haendlerAusLink(url)}</a>
+                style={{ color: NACHKAUF_FARBE, fontWeight: 600, textDecoration: "underline" }}>🛒 {haendlerAusLink(url)}</a>
             )}
           </div>
         );
@@ -641,7 +649,7 @@ function SakeZeile({ w, big }) {
     w.sakeTrinktemp && `Trinken: ${w.sakeTrinktemp}`,
   ].filter(Boolean);
   if (!teile.length) return null;
-  return <div style={{ marginTop: 6, fontSize: big ? 14 : 12.5, color: "var(--c-4a4038)" }}>🍶 {teile.join(" · ")}</div>;
+  return <div style={{ marginTop: 6, fontSize: big ? 15 : 12.5, color: "var(--c-4a4038)" }}>🍶 {teile.join(" · ")}</div>;
 }
 
 // Preis nur mit € anzeigen, wenn es eine reine Zahl ist (z. B. "24,30" oder "ca. 25").
@@ -835,7 +843,7 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
           </button>
         ) : <span style={{ ...chip, whiteSpace: "nowrap" }}>📍 {w.trinkort}</span>)}
         {w.nurVorOrtErhaeltlich === "Ja" && <span title="Nur im Lokal trinkbar, nicht online bestellbar" style={{ ...pille, background: "#6B4E3D" }}>Nur vor Ort</span>}
-        {w.nachkaufen === "Ja" && <span style={{ ...pille, background: "#7A2038" }}>Nachkaufen</span>}
+        {w.nachkaufen === "Ja" && <span style={{ ...pille, background: "transparent", color: NACHKAUF_FARBE, border: `1px dashed ${NACHKAUF_FARBE}`, padding: "2px 9px" }}>Nachkaufen</span>}
         {istMerkliste && <span style={{ ...pille, background: "#3F6E9E" }}>🔖 {w.merklisteArt === "kaufen" ? "Kaufen" : "Trinken"}</span>}
         {(() => {
           // Bezug: Einkaufswagen immer, wenn eine Bezugsquelle eingetragen ist (Einzelhandel, Webshop).
@@ -872,8 +880,8 @@ function WineCard({ w, onToggleFavorit, onToggleFavoritBJ, onToggleMerkliste, on
           const link = linkGueltig(w.nachkaufLink) && !aus;
           const teile = [preis, jahr ? `Jg. ${jahr}` : ""].filter(Boolean).join(" · ");
           const titel = `Anderer Jahrgang beim Händler (Orientierung)${aus ? " – ausverkauft" : ""}`;
-          const stil = { display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 600, background: "transparent", color: aus ? "var(--c-8a8075)" : "#7D6A9E", border: `1px dashed ${aus ? "var(--c-8a8075)" : "#7D6A9E"}`, borderRadius: 999, padding: "2px 9px", lineHeight: 1.4, whiteSpace: "nowrap", textDecoration: "none", maxWidth: "100%", minWidth: 0 };
-          const inhalt = (<>{link ? <Cart size={13} color={aus ? "var(--c-8a8075)" : "#7D6A9E"} /> : <span>📅</span>}<span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, textDecoration: aus ? "line-through" : "none" }}>{teile || "anderer Jahrgang"}{aus ? " · ausverkauft" : ""}</span></>);
+          const stil = { display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 600, background: "transparent", color: NACHKAUF_FARBE, border: `1px dashed ${NACHKAUF_FARBE}`, borderRadius: 999, padding: "2px 9px", lineHeight: 1.4, whiteSpace: "nowrap", textDecoration: "none", maxWidth: "100%", minWidth: 0 };
+          const inhalt = (<>{link ? <Cart size={13} color={NACHKAUF_FARBE} /> : <span>📅</span>}<span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, textDecoration: aus ? "line-through" : "none" }}>{teile || "anderer Jahrgang"}{aus ? " · ausverkauft" : ""}</span></>);
           return link
             ? (<a href={linkBereinigen(w.nachkaufLink)} target="_blank" rel="noopener noreferrer" title={titel} onClick={(e) => e.stopPropagation()} style={stil}>{inhalt}</a>)
             : (<span title={titel} style={stil}>{inhalt}</span>);
@@ -1958,8 +1966,12 @@ function Weinkeller({ onLogout }) {
                 <div style={{ marginTop: 6, fontSize: 15, color: "var(--c-4a4038)" }}>🏆 {dw.kritiker}</div>
               )}
               {dw.typ === "Sake" && <SakeZeile w={dw} big />}
-              <WeitereJahrgaengeZeile w={dw} big />
-              <NachkaufZeile w={dw} big />
+              {nachkaufVorhanden(dw) && (
+                <div style={{ marginTop: 10, padding: "8px 12px", border: `1px dashed ${NACHKAUF_FARBE}`, borderRadius: 10 }}>
+                  <NachkaufZeile w={dw} big />
+                  <WeitereJahrgaengeZeile w={dw} big />
+                </div>
+              )}
               {(dw.alternativeBezugsquelle || linkGueltig(dw.alternativeLink)) && !altVerbergen(dw) && (
                 dw.bezugsquelle === "Restaurant/Weinbar" ? (
                   <div style={{ marginTop: 6, fontSize: 15, fontWeight: 600, color: "var(--c-7a2038)", display: "flex", alignItems: "center", gap: 6 }}>
@@ -1971,7 +1983,7 @@ function Weinkeller({ onLogout }) {
                     </a>
                   </div>
                 ) : (
-                  <div style={{ marginTop: 4, fontSize: 14, color: "var(--c-a89c89)", display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ marginTop: 4, fontSize: 15, color: "var(--c-a89c89)", display: "flex", alignItems: "center", gap: 6 }}>
                     🔗 Auch online bei: {dw.alternativeBezugsquelle || haendlerAusLink(dw.alternativeLink)}
                     <a href={altUrlFuer(dw)} target="_blank" rel="noopener noreferrer"
                       title={`${dw.weinname || "Wein"} erneut suchen`}
@@ -1986,22 +1998,22 @@ function Weinkeller({ onLogout }) {
                 {dw.saeure && dw.typ !== "Süßwein" && <SaeureBar value={dw.saeure} typ={dw.typ} gl={dw.saeureGL} />}
               </div>
 
-              {dw.typ === "Weiß" && dw.cremig && <div style={{ marginTop: 14, fontSize: 14, color: "var(--c-7a6f63)" }}>Cremig: {dw.cremig}</div>}
+              {dw.typ === "Weiß" && dw.cremig && <div style={{ marginTop: 14, fontSize: 15, color: "var(--c-7a6f63)" }}>Cremig: {dw.cremig}</div>}
               {dw.dekantieren === "Ja" && (
-                <div style={{ marginTop: 6, fontSize: 14, color: "var(--c-7a6f63)" }}>
+                <div style={{ marginTop: 6, fontSize: 15, color: "var(--c-7a6f63)" }}>
                   🫗 Dekantieren{dw.dekantierzeit !== "" && dw.dekantierzeit != null ? `: ${dw.dekantierzeit} ${String(dw.dekantierzeit) === "1" ? "Stunde" : "Stunden"} vorher` : ""}
                 </div>
               )}
-              {dw.wiederkaufen && <div style={{ marginTop: 6, fontSize: 14, color: "var(--c-7a6f63)" }}>Wiederkaufen/-trinken: {dw.wiederkaufen}</div>}
+              {dw.wiederkaufen && <div style={{ marginTop: 6, fontSize: 15, color: "var(--c-7a6f63)" }}>Wiederkaufen/-trinken: {dw.wiederkaufen}</div>}
 
               {datumDE(dw.trinkDatum) && (
-                <div style={{ marginTop: 6, fontSize: 14, color: "var(--c-7a6f63)" }}>🗓 Getrunken am: {datumDE(dw.trinkDatum)}</div>
+                <div style={{ marginTop: 6, fontSize: 15, color: "var(--c-7a6f63)" }}>🗓 Getrunken am: {datumDE(dw.trinkDatum)}</div>
               )}
               {dw.trinkVerlauf && dw.trinkVerlauf.length > 0 && (
                 <div style={{ marginTop: 16 }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: "var(--c-7a6f63)", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 6 }}>Getrunken in</div>
                   {dw.trinkVerlauf.slice().reverse().map((v, i) => (
-                    <div key={i} style={{ fontSize: 14, color: "var(--c-4a4038)", marginBottom: 4 }}>📍 {v.ort} <span style={{ color: "var(--c-a89c89)" }}>· {v.datum}</span></div>
+                    <div key={i} style={{ fontSize: 15, color: "var(--c-4a4038)", marginBottom: 4 }}>📍 {v.ort} <span style={{ color: "var(--c-a89c89)" }}>· {v.datum}</span></div>
                   ))}
                 </div>
               )}
@@ -2252,20 +2264,20 @@ function Weinkeller({ onLogout }) {
                 <input placeholder="z. B. 53.5511, 9.9937" value={form.trinkortGPS} onChange={(e) => setForm({ ...form, trinkortGPS: e.target.value })} onFocus={alleMarkieren} style={leerStil(form.trinkortGPS)} />
               </div>
               </>)}
-              <div style={{ gridColumn: "1 / -1", fontFamily: "'Fraunces', Georgia, serif", fontSize: 17, fontWeight: 600, margin: "16px 0 2px", paddingBottom: 6, borderBottom: "1px solid var(--c-e7e2da)" }}>Nachkauf</div>
+              <div style={{ gridColumn: "1 / -1", fontFamily: "'Fraunces', Georgia, serif", fontSize: 17, fontWeight: 600, margin: "16px 0 2px", paddingBottom: 6, borderBottom: "1px solid var(--c-e7e2da)" }}>Andere Jahrgänge</div>
               <div>
                 <label>Händler-Jahrgang (anderer Jahrgang)</label>
                 <input placeholder="z. B. 2023" value={form.haendlerJahrgang} onChange={(e) => setForm({ ...form, haendlerJahrgang: e.target.value })} onFocus={alleMarkieren} style={{}} />
               </div>
-              <div><label>Nachkauf-Preis (€)</label><UnitInput unit="€" placeholder="z. B. 34,90" value={form.nachkaufPreis} onChange={(e) => setForm({ ...form, nachkaufPreis: e.target.value })} onFocus={alleMarkieren} style={{}} /></div>
+              <div><label>Preis anderer Jahrgang (€)</label><UnitInput unit="€" placeholder="z. B. 34,90" value={form.nachkaufPreis} onChange={(e) => setForm({ ...form, nachkaufPreis: e.target.value })} onFocus={alleMarkieren} style={{}} /></div>
               <div>
-                <label>Nachkauf-Link</label>
+                <label>Link zum anderen Jahrgang</label>
                 <input placeholder="https://…" value={form.nachkaufLink} onChange={(e) => setForm({ ...form, nachkaufLink: e.target.value })} onFocus={alleMarkieren} style={{}} />
               </div>
               <div>
                 <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <input type="checkbox" checked={form.ausverkauft === "Ja"} onChange={(e) => setForm({ ...form, ausverkauft: e.target.checked ? "Ja" : "" })} style={{ width: "auto" }} />
-                  Nachkauf-Jahrgang ausverkauft
+                  Anderer Jahrgang ausverkauft
                 </label>
               </div>
               <div style={{ gridColumn: "1 / -1" }}>
